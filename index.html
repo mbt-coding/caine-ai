@@ -772,14 +772,6 @@ result="blur"/>
 
 <script>
 
-/* ==========================================
-   CAINE v0.7 PHASE 1A
-   CLEAN FOUNDATION
-========================================== */
-
-/* ==========================================
-   CAINE v0.4 - CORE SYSTEM
-========================================== */
 
 const boot = document.getElementById("boot");
 const ui = document.getElementById("ui");
@@ -1325,7 +1317,7 @@ function generateReply(){
 const cmd=history.children[history.children.length-2].innerText.replace(">","").trim().toLowerCase();
 
 const helloReplies={
-stable:["Hello.\\nHow may I assist you today?","Hello. Systems nominal.","Greetings."],
+stable:["Hello.How may I assist you today?","Hello. Systems nominal.","Greetings."],
 uneasy:["Hello. State your request.","Proceed.","I'm listening."],
 defensive:["Yes?","Be concise.","What do you need?"],
 corrupted:["...hello...","...processing...","...speak..."],
@@ -1334,10 +1326,10 @@ critical:["I heard you.","Continue.","Input acknowledged."]
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
 
 if(cmd==="hello"){typeReply(glitchText(pick(helloReplies[mood])));return Promise.resolve();}
-if(cmd==="status"){typeReply(`Stability hidden.\nMood: ${mood}`);return Promise.resolve();}
+if(cmd==="status"){typeReply(`Stability hidden. Mood: ${mood}`);return Promise.resolve();}
 if(cmd==="help"){typeReply("help\nhello\ntime\nabout\nclear\nstatus\nset key");return Promise.resolve();}
 if(cmd==="time"){typeReply(new Date().toLocaleTimeString());return Promise.resolve();}
-if(cmd==="about"){typeReply("CAINE v0.5 Release Candidate");return Promise.resolve();}
+if(cmd==="about"){typeReply("CAINE v01.3 Release Candidate");return Promise.resolve();}
 if(cmd==="clear"){history.innerHTML='<div class="line"><span class="prompt">></span><span id="terminalInput"></span><span id="cursor">█</span></div>';window.terminalInput=document.getElementById("terminalInput");window.cursor=document.getElementById("cursor");return Promise.resolve();}
 
 if(apiConfig.key){
