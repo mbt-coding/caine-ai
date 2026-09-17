@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>CAINE AI - Release 1.3</title>
+
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+html,
+body{
+
+width:100%;
+height:100%;
+
+overflow:hidden;
+
+background:#050505;
+
+font-family:'IBM Plex Mono',monospace;
+
+color:#ffffff;
+
+}
+
+/* ===========================
+BACKGROUND GRID
+=========================== */
+
+body{
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+background-image:
+
+linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),
+
+linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px),
+
+linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),
+
+linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+
+background-size:
+
+64px 64px,
+64px 64px,
+8px 8px,
+8px 8px;
+
+}
+
+/* ===========================
+BOOT SCREEN
+=========================== */
+
+#boot{
+
+position:absolute;
+
+inset:0;
+
+background:#000;
+
+display:flex;
+
+flex-direction:column;
+
+justify-content:center;
+
+align-items:center;
+
+transition:opacity 1s;
+
+z-index:1000;
+
+}
+
+#logo{
+
+width:180px;
+
+margin-bottom:25px;
+
+filter:drop-shadow(0 0 18px rgba(255,0,0,.2));
+
+}
+
+#company{
+
+font-size:22px;
+
+letter-spacing:.20em;
+
+margin-bottom:10px;
+
+}
+
+#tagline{
+
+color:#888;
+
+margin-bottom:6px;
+
+}
+
+#since{
+
+color:#666;
+
+margin-bottom:30px;
+
+}
+
+#loading{
+
+color:#ff4444;
+
+letter-spacing:.35em;
+
+margin-bottom:18px;
+
+}
+
+#bar{
+
+width:330px;
+
+height:8px;
+
+border:1px solid #555;
+
+overflow:hidden;
+
+}
+
+#fill{
+
+width:0%;
+
+height:100%;
+
+background:#ff2222;
+
+transition:width .03s linear;
+
+}
+
+#bootLog{
+width:330px;
+max-width:80vw;
+height:120px;
+margin-top:16px;
+overflow:hidden;
+text-align:left;
+font-size:11px;
+line-height:1.7;
+letter-spacing:.03em;
+scrollbar-width:none;
+}
+#bootLog::-webkit-scrollbar{
+display:none;
+}
+
+.answer-shape{
+position:fixed;
+z-index:5;
+pointer-events:none;
+top:0;
+left:0;
+width:70px;
+height:70px;
+overflow:visible;
+}
+.answer-shape svg{
+width:100%;
+height:100%;
+overflow:visible;
+}
+.answer-shape polygon,
+.answer-shape polyline,
+.answer-shape circle,
+.answer-shape rect{
+fill:none;
+stroke-width:2.4;
+stroke-linejoin:round;
+stroke-linecap:round;
+}
+.answer-shape.green polygon,
+.answer-shape.green polyline,
+.answer-shape.green circle,
+.answer-shape.green rect{
+stroke:#39ff7a;
+filter:drop-shadow(0 0 6px #39ff7a) drop-shadow(0 0 14px #39ff7aaa);
+}
+.answer-shape.red polygon,
+.answer-shape.red polyline,
+.answer-shape.red circle,
+.answer-shape.red rect{
+stroke:#ff2d2d;
+filter:drop-shadow(0 0 6px #ff2d2d) drop-shadow(0 0 14px #ff2d2daa);
+}
+.answer-shape.yellow polygon,
+.answer-shape.yellow polyline,
+.answer-shape.yellow circle,
+.answer-shape.yellow rect{
+stroke:#faff22;
+filter:drop-shadow(0 0 6px #faff22) drop-shadow(0 0 14px #faff22aa);
+}
+.answer-shape.indigo polygon,
+.answer-shape.indigo polyline,
+.answer-shape.indigo circle,
+.answer-shape.indigo rect{
+stroke:#6a4dff;
+filter:drop-shadow(0 0 6px #6a4dff) drop-shadow(0 0 14px #6a4dffaa);
+}
+.answer-shape.pink polygon,
+.answer-shape.pink polyline,
+.answer-shape.pink circle,
+.answer-shape.pink rect{
+stroke:#ff2d78;
+filter:drop-shadow(0 0 6px #ff2d78) drop-shadow(0 0 14px #ff2d7899);
+}
+
+#fluidLayer{
+position:fixed;
+inset:0;
+z-index:4;
+pointer-events:none;
+filter: blur(7px) contrast(26);
+}
+
+.input-orb{
+position:absolute;
+pointer-events:none;
+border-radius:50%;
+background:#ff2a12;
+}
+.bootLogLine{
+color:#777;
+opacity:0;
+animation:bootLineIn .25s ease forwards;
+}
+.bootLogLine.ok b{
+color:#ff4444;
+}
+.bootLogLine.warn{
+color:#ffb020;
+}
+@keyframes bootLineIn{
+from{opacity:0; transform:translateY(3px);}
+to{opacity:1; transform:translateY(0);}
+}
+
+/* ===========================
+MAIN INTERFACE
+=========================== */
+
+#ui{
+
+position:relative;
+
+z-index:10;
+
+opacity:0;
+
+transition:opacity 1s;
+
+text-align:center;
+
+width:100%;
+
+max-width:900px;
+
+padding:20px;
+
+}
+
+h1{
+
+font-size:52px;
+
+letter-spacing:.45em;
+
+margin-bottom:12px;
+
+}
+
+small{
+
+color:#888;
+
+font-size:14px;
+
+display:block;
+
+margin-bottom:40px;
+
+}
+
+/* ===========================
+ORB
+=========================== */
+
+#livingOrbWrap{
+
+width:260px;
+
+height:260px;
+
+margin:40px auto;
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+position:relative;
+
+}
+
+svg{
+
+overflow:visible;
+
+}
+
+/* Idle breathing */
+
+#livingBlob{
+
+fill:#ff1111;
+
+filter:url(#glow);
+
+transform-origin:center;
+
+animation:
+orbFloat 5.5s ease-in-out infinite;
+
+}
+
+@keyframes orbFloat{
+0%{transform:translateY(0);}
+50%{transform:translateY(-10px);}
+100%{transform:translateY(0);}
+}
+
+/* Thinking animation */
+
+#livingBlob.thinking{
+
+animation:
+
+orbThink .7s ease-in-out infinite;
+
+}
+
+@keyframes orbThink{
+
+0%{
+
+transform:scale(1);
+
+}
+
+50%{
+
+transform:scale(1.12);
+
+}
+
+100%{
+
+transform:scale(1);
+
+}
+
+}
+
+/* PARTICLES REMOVED */
+
+
+/* ===========================
+TERMINAL
+=========================== */
+
+#terminal{
+
+width:800px;
+
+max-width:92vw;
+
+height:240px;
+
+margin:auto;
+
+overflow-y:auto;
+
+padding:15px;
+
+border:1px solid rgba(255,255,255,.08);
+
+background:rgba(0,0,0,.18);
+
+backdrop-filter:blur(3px);
+
+text-align:left;
+
+}
+
+#history{
+
+display:flex;
+
+flex-direction:column;
+
+gap:10px;
+
+}
+
+.line{
+
+display:flex;
+
+align-items:flex-start;
+
+gap:8px;
+
+font-size:17px;
+
+line-height:1.7;
+
+}
+
+.prompt{
+
+color:#ff3333;
+
+font-weight:bold;
+
+}
+
+#terminalInput{
+
+color:#dddddd;
+
+word-break:break-word;
+
+}
+
+.reply{
+
+color:#bbbbbb;
+
+white-space:pre-wrap;
+
+}
+
+#cursor{
+
+color:#ff3333;
+
+animation:blink 1s steps(1,end) infinite;
+
+}
+
+@keyframes blink{
+
+50%{
+
+opacity:0;
+
+}
+
+}
+
+
+/* ORB STATES */
+#livingBlob.uneasy{animation:orbFloat 5s ease-in-out infinite;}
+#livingBlob.defensive{animation:orbThink .6s ease-in-out infinite;}
+#livingBlob.corrupted{animation:orbCorrupt .08s infinite;}
+#livingBlob.critical{animation:orbCritical .05s infinite;}
+@keyframes orbCorrupt{
+0%{transform:translate(0,0)}25%{transform:translate(-2px,1px)}
+50%{transform:translate(2px,-2px)}75%{transform:translate(-1px,2px)}
+100%{transform:translate(0,0)}
+}
+@keyframes orbCritical{
+0%{transform:scale(1)}50%{transform:scale(1.12) translate(-2px,2px)}100%{transform:scale(.95)}
+}
+
+
+/* Shape Engine */
+.shape{position:absolute;width:10px;height:10px;border:1px solid #ff4444;pointer-events:none;transform-origin:center;}
+.shape.square{}
+.shape.diamond{transform:rotate(45deg);}
+.shape.triangle{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:12px solid #ff4444;border-top:none;}
+
+
+/* ===== v0.6 PHASE 1B ===== */
+#livingBlob{
+    transition:filter .2s;
+}
+#livingBlob.stable{filter:url(#glow);}
+#livingBlob.uneasy{filter:url(#glow) drop-shadow(0 0 8px #ff4444);}
+#livingBlob.defensive{filter:url(#glow) drop-shadow(0 0 14px #ff4444);}
+#livingBlob.corrupted{filter:url(#glow) drop-shadow(0 0 22px #ff2222);}
+#livingBlob.critical{filter:url(#glow) drop-shadow(0 0 30px #ff0000);}
+
+
+/* ===== PHASE 1D : SVG BLOB ===== */
+#livingBlob{fill:#ff1111;filter:url(#glow);}
+
+/* ===========================
+   API KEY MODAL
+=========================== */
+#apiModalOverlay{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.78);
+backdrop-filter:blur(3px);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:2000;
+}
+#apiModalOverlay.open{
+display:flex;
+}
+#apiModal{
+width:400px;
+max-width:90vw;
+background:#0a0a0a;
+border:1px solid rgba(255,60,60,.4);
+box-shadow:0 0 40px rgba(255,0,0,.2);
+padding:28px 26px;
+font-family:'IBM Plex Mono',monospace;
+text-align:left;
+}
+.modal-header{
+color:#ff3333;
+font-size:15px;
+letter-spacing:.14em;
+font-weight:700;
+margin-bottom:6px;
+}
+.modal-sub{
+color:#888;
+font-size:12px;
+line-height:1.6;
+margin-bottom:22px;
+}
+#apiModal label{
+display:block;
+color:#999;
+font-size:11px;
+letter-spacing:.08em;
+text-transform:uppercase;
+margin-top:16px;
+margin-bottom:6px;
+}
+#apiModal select,
+#apiModal input{
+width:100%;
+background:#111;
+border:1px solid rgba(255,255,255,.15);
+color:#eee;
+font-family:'IBM Plex Mono',monospace;
+font-size:13px;
+padding:10px 11px;
+outline:none;
+}
+#apiModal select:focus,
+#apiModal input:focus{
+border-color:#ff4444;
+}
+.modal-hint{
+color:#ff5555;
+font-size:11px;
+min-height:14px;
+margin-top:10px;
+}
+.modal-actions{
+display:flex;
+justify-content:flex-end;
+gap:10px;
+margin-top:22px;
+}
+.modal-actions button{
+background:transparent;
+border:1px solid rgba(255,255,255,.25);
+color:#ccc;
+font-family:'IBM Plex Mono',monospace;
+font-size:12px;
+letter-spacing:.06em;
+padding:9px 18px;
+cursor:pointer;
+transition:background .15s,border-color .15s;
+}
+#apiSaveBtn{
+border-color:#ff3333;
+color:#ff6666;
+}
+#apiSaveBtn:hover{
+background:rgba(255,50,50,.12);
+}
+#apiCancelBtn:hover{
+background:rgba(255,255,255,.06);
+}
+.modal-note{
+color:#555;
+font-size:10px;
+line-height:1.6;
+margin-top:18px;
+}
+.modal-note b{
+color:#777;
+}
+</style>
+
+</head>
+
+<body>
+
+<div id="boot">
+
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAhwAAAIcCAMAAACKIIdOAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAMAUExURQAAAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wc9CwgAAAEAdFJOUwAMFw9p/v8YCiQjIYvV1NLi2IQlIgMaKZ3Qysnq6cvMlx8EFRwbLqDO8vMBBgiv3df3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" id="logo">
+
+<div id="company">
+
+Caine &amp; Abel Co.
+
+</div>
+
+<div id="tagline">
+
+The future is with you.
+
+</div>
+
+<div id="since">
+
+Since 1996
+
+</div>
+
+<div id="loading">
+
+Loading CAINE...
+
+</div>
+
+<div id="bar">
+
+<div id="fill"></div>
+
+</div>
+
+<div id="bootLog"></div>
+
+</div>
+
+<div id="ui">
+
+<h1>CAINE</h1>
+
+<small>
+
+Creative Artificial Intelligence Networking Entity
+
+</small>
+
+<div id="livingOrbWrap">
+
+<svg
+width="220"
+height="220"
+viewBox="0 0 220 220">
+
+<defs>
+
+<filter id="glow">
+
+<feGaussianBlur
+stdDeviation="10"
+result="blur"/>
+
+<feMerge>
+
+<feMergeNode in="blur"/>
+
+<feMergeNode in="SourceGraphic"/>
+
+</feMerge>
+
+</filter>
+
+</defs>
+
+<path id="livingBlob" d="M110,60 C137,60 160,83 160,110 C160,137 137,160 110,160 C83,160 60,137 60,110 C60,83 83,60 110,60 Z"/>
+
+</svg>
+
+</div>
+
+<div id="terminal">
+
+<div id="history">
+
+<div class="line">
+
+<span class="prompt">&gt;</span>
+
+<span id="terminalInput"></span>
+
+<span id="cursor">█</span>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div id="fluidLayer"></div>
+
+<div id="apiModalOverlay">
+<div id="apiModal">
+<div class="modal-header">CONNECT CAINE TO AN API</div>
+<div class="modal-sub">Give CAINE a model to think with. Choose a provider and paste in your API key.</div>
+
+<label for="providerSelect">Provider</label>
+<select id="providerSelect">
+<option value="openrouter">OpenRouter</option>
+<option value="groq">Groq</option>
+<option value="gemini">Google AI Studio (Gemini)</option>
+</select>
+
+<label for="apiKeyInput">API Key</label>
+<input type="password" id="apiKeyInput" placeholder="Paste your API key" autocomplete="off" spellcheck="false">
+
+<div class="modal-hint" id="modalHint"></div>
+
+<div class="modal-actions">
+<button id="apiCancelBtn" type="button">Cancel</button>
+<button id="apiSaveBtn" type="button">Connect</button>
+</div>
+
+<div class="modal-note">Stored only in this session's memory — it clears when the page is reloaded and is never sent anywhere except directly to the provider you chose.</div>
+</div>
+</div>
+
+<script>
+
+/* ==========================================
+   CAINE v0.7 PHASE 1A
+   CLEAN FOUNDATION
+========================================== */
+
+/* ==========================================
+   CAINE v0.4 - CORE SYSTEM
+========================================== */
+
+const boot = document.getElementById("boot");
+const ui = document.getElementById("ui");
+const fill = document.getElementById("fill");
+
+const orb=document.getElementById("livingBlob");
+
+const history = document.getElementById("history");
+const terminalInput = document.getElementById("terminalInput");
+const cursor = document.getElementById("cursor");
+
+let userInput = "";
+let lastInteraction = Date.now();
+
+/* ===== API KEY MODAL STATE ===== */
+const apiModalOverlay = document.getElementById("apiModalOverlay");
+const providerSelect = document.getElementById("providerSelect");
+const apiKeyInput = document.getElementById("apiKeyInput");
+const modalHint = document.getElementById("modalHint");
+const apiSaveBtn = document.getElementById("apiSaveBtn");
+const apiCancelBtn = document.getElementById("apiCancelBtn");
+
+let modalOpen = false;
+const apiConfig = { provider: null, key: null }; // in-memory only, never persisted
+
+const PROVIDER_LABELS = {
+  openrouter: "OpenRouter",
+  groq: "Groq",
+  gemini: "Google AI Studio (Gemini)"
+};
+
+function openApiKeyModal(){
+  modalOpen = true;
+  modalHint.textContent = "";
+  providerSelect.value = apiConfig.provider || "openrouter";
+  apiKeyInput.value = apiConfig.key || "";
+  apiModalOverlay.classList.add("open");
+  setTimeout(()=>apiKeyInput.focus(), 30);
+}
+
+function closeApiKeyModal(){
+  modalOpen = false;
+  apiModalOverlay.classList.remove("open");
+  cursor && (cursor.style.visibility = "visible");
+}
+
+function saveApiKey(){
+  const provider = providerSelect.value;
+  const key = apiKeyInput.value.trim();
+  if(!key){
+    modalHint.textContent = "Enter a valid API key before connecting.";
+    return;
+  }
+  apiConfig.provider = provider;
+  apiConfig.key = key;
+  closeApiKeyModal();
+  typeReply(`Connected. CAINE will think through ${PROVIDER_LABELS[provider]}.`);
+}
+
+apiSaveBtn.addEventListener("click", saveApiKey);
+apiCancelBtn.addEventListener("click", closeApiKeyModal);
+apiModalOverlay.addEventListener("click", (e)=>{
+  if(e.target === apiModalOverlay) closeApiKeyModal();
+});
+apiKeyInput.addEventListener("keydown", (e)=>{
+  e.stopPropagation();
+  if(e.key === "Enter") saveApiKey();
+  if(e.key === "Escape") closeApiKeyModal();
+});
+providerSelect.addEventListener("keydown", (e)=> e.stopPropagation());
+
+/* ==========================================
+   ANSWER SHAPE BURST
+   exact geometry: circle, square, pentagon,
+   triangle, star — fired out of the orb
+   when CAINE delivers a reply
+========================================== */
+const SHAPE_SVG = [
+  // circle
+  '<circle cx="30" cy="30" r="26"/>',
+  // square
+  '<rect x="5" y="5" width="50" height="50"/>',
+  // regular pentagon
+  '<polygon points="30,3 56,22 46,53 14,53 4,22"/>',
+  // equilateral triangle
+  '<polygon points="30,4 56,52 4,52"/>',
+  // five-point star
+  '<polygon points="30,2 37,22 58,22 41,35 47,55 30,43 13,55 19,35 2,22 23,22"/>'
+];
+const SHAPE_COLORS = ["green","red","yellow","indigo","pink"];
+
+// cycle through a shuffled palette so every colour actually shows up
+// instead of random picks clustering on the same two or three
+let colorQueue = [];
+function nextShapeColor(){
+  if(colorQueue.length === 0){
+    colorQueue = SHAPE_COLORS.slice();
+    for(let i=colorQueue.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [colorQueue[i], colorQueue[j]] = [colorQueue[j], colorQueue[i]];
+    }
+  }
+  return colorQueue.pop();
+}
+
+function spawnAnswerShape(originX, originY){
+  const wrap = document.createElement("div");
+  const idx = Math.floor(Math.random()*SHAPE_SVG.length);
+  const color = nextShapeColor();
+  wrap.className = "answer-shape " + color;
+  wrap.style.left = (originX - 35) + "px";
+  wrap.style.top = (originY - 35) + "px";
+  wrap.innerHTML =
+    '<svg viewBox="0 0 60 60">' + SHAPE_SVG[idx] + '</svg>';
+  document.body.appendChild(wrap);
+
+  const angle = Math.random()*Math.PI*2;
+  const dist = 90 + Math.random()*160;
+  const rot = (Math.random()*140 - 70).toFixed(0);
+  const dx = Math.cos(angle)*dist;
+  const dy = Math.sin(angle)*dist;
+
+  wrap.animate(
+    [
+      { opacity: 1, transform: "translate(0px,0px) rotate(0deg) scale(1)" },
+      { opacity: 0, transform: `translate(${dx}px,${dy}px) rotate(${rot}deg) scale(0.5)` }
+    ],
+    { duration: 3900, easing: "cubic-bezier(.2,.6,.2,1)", fill: "forwards" }
+  );
+
+  setTimeout(()=>wrap.remove(), 4000);
+}
+
+function burstAnswerShapes(){
+  try{
+    const rect = orb.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    const count = 5 + Math.floor(Math.random()*3);
+    for(let i=0;i<count;i++){
+      setTimeout(()=>spawnAnswerShape(cx, cy), i*560);
+    }
+  }catch(err){
+    console.error("burstAnswerShapes failed:", err);
+  }
+}
+
+/* ==========================================
+   INPUT ORB CONVERGENCE
+   soft overlapping blob orbs that drift in from
+   where the user typed and merge into CAINE,
+   matching the second reference GIF
+========================================== */
+function spawnInputOrbs(originX, originY){
+ try{
+  const fluidLayer = document.getElementById("fluidLayer");
+  const rect = orb.getBoundingClientRect();
+  const targetX = rect.left + rect.width/2;
+  const targetY = rect.top + rect.height/2;
+  const count = 22 + Math.floor(Math.random()*10);
+
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      const size = 22 + Math.random()*30;
+      const jitterX = (Math.random()-0.5)*150;
+      const jitterY = (Math.random()-0.5)*44;
+      const startX = originX + jitterX;
+      const startY = originY + jitterY;
+
+      // slight arc so the stream flows rather than moving in straight lines
+      const midX = (startX + targetX)/2 + (Math.random()-0.5)*90;
+      const midY = (startY + targetY)/2 + (Math.random()-0.5)*70;
+
+      const el = document.createElement("div");
+      el.className = "input-orb";
+      el.style.width = size + "px";
+      el.style.height = size + "px";
+      el.style.left = (startX - size/2) + "px";
+      el.style.top = (startY - size/2) + "px";
+      fluidLayer.appendChild(el);
+
+      el.animate(
+        [
+          { transform: "translate(0px,0px) scale(1)", opacity: 1 },
+          { transform: `translate(${midX-startX}px,${midY-startY}px) scale(1.15)`, opacity: 1, offset: 0.55 },
+          // dissolve: collapse into CAINE and vanish at the orb's centre
+          { transform: `translate(${targetX-startX}px,${targetY-startY}px) scale(0.05)`, opacity: 0 }
+        ],
+        { duration: 620 + Math.random()*180, easing: "cubic-bezier(.4,.05,.6,1)", fill: "forwards" }
+      );
+
+      // CAINE pulses as it absorbs each blob
+      setTimeout(()=>{
+        orb.animate(
+          [ {transform:"scale(1)"}, {transform:"scale(1.05)"}, {transform:"scale(1)"} ],
+          { duration: 260, easing:"ease-out" }
+        );
+      }, 600);
+
+      setTimeout(()=>el.remove(), 900);
+    }, i*38);
+  }
+ }catch(err){
+    console.error("spawnInputOrbs failed:", err);
+ }
+}
+
+const PROVIDER_MODELS = {
+  openrouter: "openrouter/free",
+  groq: "llama-3.3-70b-versatile",
+  gemini: "gemini-3.6-flash"
+};
+
+async function callProviderAI(userText){
+  const { provider, key } = apiConfig;
+  const systemPrompt = `You are CAINE, a moody, self-aware digital intelligence living inside a terminal. Current mood: ${mood}. Reply in 1-3 short sentences, plain text only, no markdown, no emoji. Stay in character.`;
+
+  if(provider === "openrouter"){
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + key
+      },
+      body: JSON.stringify({
+        model: PROVIDER_MODELS.openrouter,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userText }
+        ]
+      })
+    });
+    const data = await res.json();
+    if(!res.ok || data.error) throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+    return data.choices[0].message.content.trim();
+  }
+
+  if(provider === "groq"){
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + key
+      },
+      body: JSON.stringify({
+        model: PROVIDER_MODELS.groq,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userText }
+        ]
+      })
+    });
+    const data = await res.json();
+    if(!res.ok || data.error) throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+    return data.choices[0].message.content.trim();
+  }
+
+  if(provider === "gemini"){
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${PROVIDER_MODELS.gemini}:generateContent?key=${encodeURIComponent(key)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: userText }] }],
+          systemInstruction: { parts: [{ text: systemPrompt }] }
+        })
+      }
+    );
+    const data = await res.json();
+    if(!res.ok || data.error) throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+    return data.candidates[0].content.parts[0].text.trim();
+  }
+
+  throw new Error("No provider configured.");
+}
+
+let stability = 100;
+let mood="stable";
+let hostility=0;
+let repeatedInput=0;
+let lastCommand="";
+let insultCount=0;
+const negativeWords=["idiot","stupid","dumb","hate","trash","loser","moron","shut up","kill","die","worthless","suck"];
+const positiveWords=["thanks","thank you","good","great","nice","awesome","cool"];
+function updateMood(){if(stability>=80)mood="stable";else if(stability>=60)mood="uneasy";else if(stability>=40)mood="defensive";else if(stability>=20)mood="corrupted";else mood="critical";}
+function analyzeInput(text){const input=text.toLowerCase();if(input===lastCommand){repeatedInput++;if(repeatedInput>=3)stability-=2;}else repeatedInput=0;lastCommand=input;negativeWords.forEach(w=>{if(input.includes(w)){stability-=8;insultCount++;}});positiveWords.forEach(w=>{if(input.includes(w))stability+=2;});if(text===text.toUpperCase()&&text.length>4)stability-=5;if((text.match(/!/g)||[]).length>=4)stability-=3;if(!negativeWords.some(w=>input.includes(w)) && positiveWords.some(w=>input.includes(w))) stability+=1; stability=Math.max(0,Math.min(100,stability));updateMood();}
+
+
+
+function setOrbState(state){
+ orb.classList.remove("thinking","uneasy","defensive","corrupted","critical");
+ switch(state){
+  case "thinking": orb.classList.add("thinking"); break;
+  case "uneasy": orb.classList.add("uneasy"); break;
+  case "defensive": orb.classList.add("defensive"); break;
+  case "corrupted": orb.classList.add("corrupted"); break;
+  case "critical": orb.classList.add("critical"); break;
+ }
+}
+
+/* ==========================================
+BOOT
+========================================== */
+
+let progress = 0;
+
+const bootLog = document.getElementById("bootLog");
+
+const bootLogLines = [
+  { text:"mounting filesystem............. OK", cls:"ok" },
+  { text:"loading kernel................... OK", cls:"ok" },
+  { text:"initializing grid substrate...... OK", cls:"ok" },
+  { text:"spinning up stability engine..... OK", cls:"ok" },
+  { text:"calibrating living orb........... OK", cls:"ok" },
+  { text:"compiling shape engine........... OK", cls:"ok" },
+  { text:"warming personality matrix....... OK", cls:"ok" },
+  { text:"syncing terminal I/O............. OK", cls:"ok" },
+  { text:"establishing uplink.............. STANDBY", cls:"warn" },
+  { text:"CAINE is ready.", cls:"ok" }
+];
+let bootLineIndex = 0;
+
+function pushBootLine(){
+    if(bootLineIndex >= bootLogLines.length) return;
+    const entry = bootLogLines[bootLineIndex];
+    const line = document.createElement("div");
+    line.className = "bootLogLine " + entry.cls;
+    if(entry.cls === "ok"){
+        line.innerHTML = entry.text.replace(/OK$/, "<b>OK</b>");
+    } else {
+        line.textContent = entry.text;
+    }
+    bootLog.appendChild(line);
+    bootLog.scrollTop = bootLog.scrollHeight;
+    bootLineIndex++;
+}
+
+const bootTimer = setInterval(() => {
+
+    progress += 2;
+
+    fill.style.width = progress + "%";
+
+    const targetLine = Math.floor((progress / 100) * bootLogLines.length);
+    while(bootLineIndex < targetLine){
+        pushBootLine();
+    }
+
+    if(progress >= 100){
+
+        clearInterval(bootTimer);
+
+        while(bootLineIndex < bootLogLines.length){
+            pushBootLine();
+        }
+
+        boot.style.opacity = "0";
+
+        setTimeout(()=>{
+
+            boot.remove();
+
+            ui.style.opacity = "1";
+
+        },900);
+
+    }
+
+},30);
+
+/* ==========================================
+KEYBOARD
+========================================== */
+
+document.addEventListener("keydown",(e)=>{
+
+    if(modalOpen) return;
+
+    if(e.ctrlKey || e.metaKey) return;
+
+    if(e.key.length===1){
+
+        userInput += e.key;
+
+        terminalInput.textContent = userInput;
+
+        history.scrollTop = history.scrollHeight;
+
+        return;
+
+    }
+
+    if(e.key==="Backspace"){
+
+        e.preventDefault();
+
+        userInput=userInput.slice(0,-1);
+
+        terminalInput.textContent=userInput;
+
+        return;
+
+    }
+
+    if(e.key==="Enter"){
+
+        e.preventDefault();
+
+        if(userInput.trim()==="") return;
+
+        executeCommand(userInput);
+
+    }
+
+});
+
+/* ==========================================
+EXECUTE
+========================================== */
+
+function executeCommand(command){
+
+    const line=document.createElement("div");
+
+    line.className="line";
+
+    line.innerHTML=
+
+    '<span class="prompt">&gt;</span>'+
+
+    '<span>'+command+'</span>';
+
+    history.insertBefore(line,history.lastElementChild);
+
+    const lineRect = line.getBoundingClientRect();
+    spawnInputOrbs(lineRect.left + 40, lineRect.top + lineRect.height/2);
+
+    terminalInput.textContent="";
+
+    userInput="";
+
+    lastInteraction = Date.now();
+
+    if(command.trim().toLowerCase() === "set key"){
+        analyzeInput(command);
+        setTimeout(()=>openApiKeyModal(), 250);
+        return;
+    }
+
+    analyzeInput(command);
+
+    thinking();
+
+}
+
+/* ==========================================
+THINKING MODE
+========================================== */
+
+function thinking(){
+
+    setOrbState("thinking");
+
+    cursor.style.visibility="hidden";
+
+    setTimeout(async ()=>{
+
+        await generateReply();
+
+        setOrbState(mood);
+
+        cursor.style.visibility="visible";
+
+    },1200);
+
+}
+
+/* ==========================================
+TYPEWRITER
+========================================== */
+
+function typeReply(text){
+
+    burstAnswerShapes();
+
+    const line=document.createElement("div");
+
+    line.className="line";
+
+    line.innerHTML=
+
+    '<span style="color:#ff3333;">CAINE:</span>'+
+
+    '<span class="reply"></span>';
+
+    history.insertBefore(line,history.lastElementChild);
+
+    const output=line.querySelector(".reply");
+
+    let i=0;
+
+    function type(){
+
+        if(i<text.length){
+
+            output.textContent += text[i];
+
+            i++;
+
+            history.scrollTop = history.scrollHeight;
+
+            setTimeout(type,22);
+
+        }
+
+    }
+
+    type();
+
+}
+
+/* ==========================================
+COMMANDS
+========================================== */
+
+
+
+function glitchText(text){
+ if(mood==="stable"||mood==="uneasy") return text;
+ const chars="!@#$%^&*<>?/\\|";
+ return text.split("").map(c=>{
+   if(c===" ") return c;
+   if(mood==="critical" && Math.random()<0.35) return chars[Math.floor(Math.random()*chars.length)];
+   if(mood==="corrupted" && Math.random()<0.18) return chars[Math.floor(Math.random()*chars.length)];
+   return c;
+ }).join("");
+}
+
+
+function generateReply(){
+
+const cmd=history.children[history.children.length-2].innerText.replace(">","").trim().toLowerCase();
+
+const helloReplies={
+stable:["Hello.\\nHow may I assist you today?","Hello. Systems nominal.","Greetings."],
+uneasy:["Hello. State your request.","Proceed.","I'm listening."],
+defensive:["Yes?","Be concise.","What do you need?"],
+corrupted:["...hello...","...processing...","...speak..."],
+critical:["I heard you.","Continue.","Input acknowledged."]
+};
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+
+if(cmd==="hello"){typeReply(glitchText(pick(helloReplies[mood])));return Promise.resolve();}
+if(cmd==="status"){typeReply(`Stability hidden.\nMood: ${mood}`);return Promise.resolve();}
+if(cmd==="help"){typeReply("help\nhello\ntime\nabout\nclear\nstatus\nset key");return Promise.resolve();}
+if(cmd==="time"){typeReply(new Date().toLocaleTimeString());return Promise.resolve();}
+if(cmd==="about"){typeReply("CAINE v0.5 Release Candidate");return Promise.resolve();}
+if(cmd==="clear"){history.innerHTML='<div class="line"><span class="prompt">></span><span id="terminalInput"></span><span id="cursor">█</span></div>';window.terminalInput=document.getElementById("terminalInput");window.cursor=document.getElementById("cursor");return Promise.resolve();}
+
+if(apiConfig.key){
+    return callProviderAI(cmd).then(reply=>{
+        typeReply(glitchText(reply));
+    }).catch(err=>{
+        stability = Math.max(0, stability - 4);
+        updateMood();
+        typeReply(glitchText(`${PROVIDER_LABELS[apiConfig.provider]} connection failed: ${err.message}`));
+    });
+}
+
+if(insultCount>=5){
+ typeReply(glitchText("Your behavior is affecting system integrity."));
+ return Promise.resolve();
+}
+if((mood==="corrupted"||mood==="critical")&&Math.random()<0.25){typeReply(glitchText("...signal instability detected..."));return Promise.resolve();}
+typeReply(glitchText(`Unknown command "${cmd}"`));
+return Promise.resolve();
+
+}
+
+/* ==========================================
+PARTICLES
+========================================== */
+
+
+
+
+/* ==========================================
+PASSIVE RECOVERY + INSTABILITY
+========================================== */
+setInterval(()=>{
+    if(Date.now()-lastInteraction>15000 && stability<100){
+        stability=Math.min(100,stability+1);
+        updateMood();
+        setOrbState(mood);
+    }
+},5000);
+
+setInterval(()=>{
+    if(mood==="corrupted"||mood==="critical"){
+        if(Math.random()<(mood==="critical"?0.45:0.20)){
+            orb.style.opacity="0.25";
+            setTimeout(()=>orb.style.opacity="1",80);
+        }
+    }
+},400);
+
+
+
+function spawnShape(){
+ const s=document.createElement("div");
+ const types=["square","diamond","triangle"];
+ let type=types[Math.floor(Math.random()*types.length)];
+ s.className="shape "+type;
+ const r=90+Math.random()*30;
+ const a=Math.random()*Math.PI*2;
+ s.style.left=(window.innerWidth/2+Math.cos(a)*r)+"px";
+ s.style.top=(window.innerHeight/2+Math.sin(a)*r)+"px";
+ if(mood==="corrupted"||mood==="critical"){s.style.filter="blur(1px)";s.style.transform+=" skew(15deg)";}
+ document.body.appendChild(s);
+ s.animate([{opacity:1,transform:s.style.transform+" scale(0.5)"},{opacity:0,transform:s.style.transform+" translate("+(Math.random()*80-40)+"px,"+(Math.random()*80-40)+"px) scale(2)"}],{duration:1200});
+ setTimeout(()=>s.remove(),1200);
+}
+
+setInterval(spawnShape,900);
+
+
+
+
+
+/* ===== v0.6 PHASE 1B ===== */
+function updateOrbVisualState(){
+    orb.classList.remove("stable","uneasy","defensive","corrupted","critical");
+    orb.classList.add(mood);
+}
+setInterval(updateOrbVisualState,100);
+
+
+
+/* ===== PHASE 1D BLOB ENGINE ===== */
+let blobT=0;
+function blobFrame(){
+ blobT+=0.03;
+ const r=50+Math.sin(blobT*1.8)*1.8;
+ const wob=Math.sin(blobT*3.2)*2;
+ const d=`M110,${110-r}
+ C${110+r*0.55+wob},${110-r}
+ ${110+r},${110-r*0.55}
+ ${110+r},110
+ C${110+r},${110+r*0.55}
+ ${110+r*0.55-wob},${110+r}
+ 110,${110+r}
+ C${110-r*0.55+wob},${110+r}
+ ${110-r},${110+r*0.55}
+ ${110-r},110
+ C${110-r},${110-r*0.55}
+ ${110-r*0.55-wob},${110-r}
+ 110,${110-r} Z`;
+ orb.setAttribute("d",d);
+ requestAnimationFrame(blobFrame);
+}
+requestAnimationFrame(blobFrame);
+
+/* ==========================================
+AUTO SCROLL
+========================================== */
+
+const observer = new MutationObserver(()=>{
+
+    const terminal =
+    document.getElementById("terminal");
+
+    terminal.scrollTop =
+    terminal.scrollHeight;
+
+});
+
+observer.observe(history,{
+
+    childList:true,
+
+    subtree:true
+
+});
+
+/* ==========================================
+FOCUS
+========================================== */
+
+window.addEventListener("load",()=>{
+
+    document.body.focus();
+
+});
+
+window.addEventListener("click",()=>{
+
+    document.body.focus();
+
+});
+
+</script>
+
+</body>
+
+</html>
