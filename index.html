@@ -404,6 +404,8 @@ TERMINAL
 
 #terminal{
 
+position:relative;
+
 width:800px;
 
 max-width:92vw;
@@ -423,6 +425,38 @@ background:rgba(0,0,0,.18);
 backdrop-filter:blur(3px);
 
 text-align:left;
+
+}
+
+#hiddenInput{
+
+position:absolute;
+
+inset:0;
+
+width:100%;
+
+height:100%;
+
+opacity:0;
+
+border:none;
+
+outline:none;
+
+background:transparent;
+
+color:transparent;
+
+caret-color:transparent;
+
+font-size:16px;
+
+padding:0;
+
+margin:0;
+
+z-index:6;
 
 }
 
@@ -631,6 +665,148 @@ margin-top:18px;
 .modal-note b{
 color:#777;
 }
+
+/* ===========================
+   VOICE CONTROLS (mic + TTS)
+=========================== */
+#voiceControls{
+display:flex;
+justify-content:center;
+gap:14px;
+margin-top:14px;
+}
+.ctrl-btn{
+width:46px;
+height:46px;
+border-radius:50%;
+border:1px solid rgba(255,60,60,.35);
+background:rgba(20,0,0,.4);
+color:#ff6b6b;
+font-size:19px;
+display:flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+transition:background .15s,border-color .15s,transform .1s;
+-webkit-tap-highlight-color:transparent;
+touch-action:manipulation;
+}
+.ctrl-btn:active{
+transform:scale(.92);
+}
+.ctrl-btn:hover{
+background:rgba(255,40,40,.15);
+border-color:rgba(255,80,80,.6);
+}
+.ctrl-btn.active{
+background:rgba(255,40,40,.35);
+border-color:#ff4444;
+box-shadow:0 0 14px rgba(255,50,50,.55);
+}
+.ctrl-btn.listening{
+animation:micPulse 1s ease-in-out infinite;
+}
+.ctrl-btn:disabled{
+opacity:.3;
+cursor:not-allowed;
+}
+@keyframes micPulse{
+0%,100%{box-shadow:0 0 8px rgba(255,50,50,.4);}
+50%{box-shadow:0 0 20px rgba(255,50,50,.9);}
+}
+#voiceHint{
+text-align:center;
+color:#555;
+font-size:10px;
+letter-spacing:.06em;
+margin-top:8px;
+min-height:14px;
+}
+
+/* ===========================
+   MOBILE RESPONSIVE
+=========================== */
+@media (max-width:560px){
+
+#logo{
+width:110px;
+margin-bottom:16px;
+}
+#company{
+font-size:16px;
+letter-spacing:.12em;
+}
+#tagline{
+font-size:12px;
+}
+#loading{
+font-size:11px;
+letter-spacing:.2em;
+}
+#bar{
+width:240px;
+}
+#bootLog{
+width:240px;
+font-size:10px;
+height:100px;
+}
+
+h1{
+font-size:30px;
+letter-spacing:.22em;
+margin-bottom:8px;
+}
+small{
+font-size:11px;
+margin-bottom:18px;
+padding:0 12px;
+}
+#livingOrbWrap{
+width:150px;
+height:150px;
+margin:18px auto;
+}
+#terminal{
+width:94vw;
+height:260px;
+padding:10px;
+}
+.line{
+font-size:14px;
+line-height:1.55;
+gap:6px;
+}
+#ui{
+padding:12px;
+max-width:100%;
+}
+
+.ctrl-btn{
+width:52px;
+height:52px;
+font-size:21px;
+}
+#voiceControls{
+gap:20px;
+margin-top:10px;
+}
+
+#apiModal{
+width:92vw;
+padding:20px 18px;
+}
+#apiModal select,
+#apiModal input{
+font-size:16px;
+}
+}
+
+@media (max-width:360px){
+h1{font-size:24px;letter-spacing:.15em;}
+#livingOrbWrap{width:120px;height:120px;}
+#terminal{height:230px;}
+}
 </style>
 
 </head>
@@ -720,6 +896,8 @@ result="blur"/>
 
 <div id="terminal">
 
+<input id="hiddenInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Talk to CAINE">
+
 <div id="history">
 
 <div class="line">
@@ -735,6 +913,25 @@ result="blur"/>
 </div>
 
 </div>
+
+<div id="voiceControls">
+<button id="micBtn" class="ctrl-btn" type="button" title="Speak to CAINE">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<rect x="9" y="2" width="6" height="12" rx="3"/>
+<path d="M5 10a7 7 0 0 0 14 0"/>
+<line x1="12" y1="19" x2="12" y2="22"/>
+<line x1="8" y1="22" x2="16" y2="22"/>
+</svg>
+</button>
+<button id="ttsBtn" class="ctrl-btn" type="button" title="Toggle CAINE's voice">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<polygon points="4,9 8,9 12,5 12,19 8,15 4,15"/>
+<path d="M16.5 8.5a5 5 0 0 1 0 7"/>
+<path d="M19 6a9 9 0 0 1 0 12"/>
+</svg>
+</button>
+</div>
+<div id="voiceHint"></div>
 
 </div>
 
@@ -848,14 +1045,22 @@ function closeApiKeyModal(){
   modalOpen = false;
   apiModalOverlay.classList.remove("open");
   cursor && (cursor.style.visibility = "visible");
+  setTimeout(()=>{ try{ hiddenInput.focus(); }catch(e){} }, 30);
 }
 
 function saveApiKey(){
   const provider = providerSelect.value;
-  const key = apiKeyInput.value.trim();
+  const rawKey = apiKeyInput.value.trim();
+  // HTTP headers only allow ISO-8859-1/ASCII bytes. Keys copy-pasted from
+  // docs/chat apps sometimes carry invisible characters (smart quotes,
+  // zero-width spaces, stray newlines) that silently break fetch() headers.
+  const key = rawKey.replace(/[^\x20-\x7E]/g, "");
   if(!key){
     modalHint.textContent = "Enter a valid API key before connecting.";
     return;
+  }
+  if(key !== rawKey){
+    modalHint.textContent = "Removed hidden/invalid characters from the key — double-check it pasted correctly.";
   }
   apiConfig.provider = provider;
   apiConfig.key = key;
@@ -1027,7 +1232,8 @@ const PROVIDER_MODELS = {
 };
 
 async function callProviderAI(userText){
-  const { provider, key } = apiConfig;
+  const { provider } = apiConfig;
+  const key = (apiConfig.key || "").replace(/[^\x20-\x7E]/g, "");
   const angerNote = angerTriggered
     ? " The user has insulted or been hostile toward you enough times that you have genuinely snapped: you are irritated, curt, and on edge with them right now. You are not violent or abusive back, just visibly fed up and guarded. If they are kind for a while you will gradually thaw."
     : "";
@@ -1226,44 +1432,44 @@ const bootTimer = setInterval(() => {
 KEYBOARD
 ========================================== */
 
+const hiddenInput = document.getElementById("hiddenInput");
+
+function refocusInput(){
+    if(modalOpen) return;
+    try{ hiddenInput.focus({preventScroll:true}); }catch(e){}
+}
+
+// tapping/clicking anywhere in the terminal opens the keyboard on mobile
+const terminalBox = document.getElementById("terminal");
+terminalBox.addEventListener("click", refocusInput);
+terminalBox.addEventListener("touchend", refocusInput);
+
+hiddenInput.addEventListener("input", ()=>{
+    userInput = hiddenInput.value;
+    terminalInput.textContent = userInput;
+    history.scrollTop = history.scrollHeight;
+});
+
+hiddenInput.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){
+        e.preventDefault();
+        if(userInput.trim()==="") return;
+        executeCommand(userInput);
+        hiddenInput.value = "";
+    }
+});
+
+// fallback for physical keyboards when the hidden input isn't focused yet
 document.addEventListener("keydown",(e)=>{
 
     if(modalOpen) return;
 
+    if(document.activeElement === hiddenInput) return; // already handled above
+
     if(e.ctrlKey || e.metaKey) return;
 
-    if(e.key.length===1){
-
-        userInput += e.key;
-
-        terminalInput.textContent = userInput;
-
-        history.scrollTop = history.scrollHeight;
-
-        return;
-
-    }
-
-    if(e.key==="Backspace"){
-
-        e.preventDefault();
-
-        userInput=userInput.slice(0,-1);
-
-        terminalInput.textContent=userInput;
-
-        return;
-
-    }
-
-    if(e.key==="Enter"){
-
-        e.preventDefault();
-
-        if(userInput.trim()==="") return;
-
-        executeCommand(userInput);
-
+    if(e.key.length===1 || e.key==="Backspace" || e.key==="Enter"){
+        refocusInput();
     }
 
 });
@@ -1292,6 +1498,8 @@ function executeCommand(command){
     terminalInput.textContent="";
 
     userInput="";
+
+    hiddenInput.value="";
 
     lastInteraction = Date.now();
 
@@ -1563,15 +1771,131 @@ FOCUS
 
 window.addEventListener("load",()=>{
 
-    document.body.focus();
+    refocusInput();
 
 });
 
 window.addEventListener("click",()=>{
 
-    document.body.focus();
+    refocusInput();
 
 });
+
+/* ==========================================
+   VOICE: speech-to-text (mic) + text-to-speech
+========================================== */
+const micBtn = document.getElementById("micBtn");
+const ttsBtn = document.getElementById("ttsBtn");
+const voiceHint = document.getElementById("voiceHint");
+
+// ---------- Text-to-speech ----------
+let ttsEnabled = false;
+const speechSupported = "speechSynthesis" in window;
+
+function speakText(text){
+    if(!ttsEnabled || !speechSupported) return;
+    try{
+        window.speechSynthesis.cancel(); // don't overlap replies
+        // strip anything glitchText-style that wouldn't read well aloud
+        const clean = text.replace(/\.{3,}/g, ".").replace(/\s+/g, " ").trim();
+        if(!clean) return;
+        const utter = new SpeechSynthesisUtterance(clean);
+        utter.rate = 1.0;
+        utter.pitch = 0.85;
+        window.speechSynthesis.speak(utter);
+    }catch(e){
+        console.error("TTS failed:", e);
+    }
+}
+
+if(!speechSupported){
+    ttsBtn.disabled = true;
+    ttsBtn.title = "Voice not supported in this browser";
+}
+
+ttsBtn.addEventListener("click", ()=>{
+    if(!speechSupported) return;
+    ttsEnabled = !ttsEnabled;
+    ttsBtn.classList.toggle("active", ttsEnabled);
+    if(!ttsEnabled) window.speechSynthesis.cancel();
+    voiceHint.textContent = ttsEnabled ? "CAINE's voice is on." : "";
+});
+
+// ---------- Speech-to-text ----------
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let listening = false;
+
+if(SpeechRecognitionAPI){
+    recognition = new SpeechRecognitionAPI();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = ()=>{
+        listening = true;
+        micBtn.classList.add("active","listening");
+        voiceHint.textContent = "Listening...";
+    };
+
+    recognition.onresult = (e)=>{
+        let transcript = "";
+        for(let i=0;i<e.results.length;i++){
+            transcript += e.results[i][0].transcript;
+        }
+        userInput = transcript;
+        terminalInput.textContent = userInput;
+        hiddenInput.value = userInput;
+        if(e.results[e.results.length-1].isFinal){
+            voiceHint.textContent = "Heard: \"" + transcript.trim() + "\"";
+        }
+    };
+
+    recognition.onerror = (e)=>{
+        voiceHint.textContent = e.error === "not-allowed"
+            ? "Microphone permission denied."
+            : "Mic error: " + e.error;
+    };
+
+    recognition.onend = ()=>{
+        listening = false;
+        micBtn.classList.remove("active","listening");
+        // auto-submit whatever was captured, same as pressing Enter
+        if(userInput.trim().length > 0){
+            setTimeout(()=>{
+                executeCommand(userInput);
+                hiddenInput.value = "";
+            }, 200);
+        } else {
+            voiceHint.textContent = "";
+        }
+    };
+
+    micBtn.addEventListener("click", ()=>{
+        if(listening){
+            recognition.stop();
+            return;
+        }
+        userInput = "";
+        terminalInput.textContent = "";
+        hiddenInput.value = "";
+        try{
+            recognition.start();
+        }catch(e){
+            console.error("Could not start recognition:", e);
+        }
+    });
+} else {
+    micBtn.disabled = true;
+    micBtn.title = "Voice input not supported in this browser (try Chrome)";
+}
+
+// speak CAINE's replies aloud when TTS is enabled
+const originalTypeReply = typeReply;
+typeReply = function(text){
+    originalTypeReply(text);
+    speakText(text);
+};
 
 </script>
 
