@@ -8,7 +8,7 @@
 <meta name="viewport"
 content="width=device-width, initial-scale=1.0">
 
-<title>CAINE AI - Release 1.4</title>
+<title>CAINE AI - Release 1.5.2</title>
 
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
 
@@ -546,7 +546,7 @@ opacity:0;
 .shape{position:absolute;width:10px;height:10px;border:1px solid #ff4444;border-radius:50%;pointer-events:none;transform-origin:center;}
 
 
-/* ===== v1.4 CORE ===== */
+/* ===== v1.5.2 CORE ===== */
 #livingBlob{
     transition:filter .2s;
 }
@@ -557,7 +557,7 @@ opacity:0;
 #livingBlob.critical{filter:url(#glow) drop-shadow(0 0 30px #ff0000);}
 
 
-/* ===== v1.4 SVG BLOB ===== */
+/* ===== v1.5.2 SVG BLOB ===== */
 #livingBlob{fill:#ff1111;filter:url(#glow);}
 
 /* ===========================
@@ -937,6 +937,8 @@ result="blur"/>
 
 <div id="fluidLayer"></div>
 
+<input type="file" id="loadFileInput" accept="application/json" style="display:none">
+
 <div id="apiModalOverlay">
 <div id="apiModal">
 <div class="modal-header">CONNECT CAINE TO AN API</div>
@@ -966,12 +968,12 @@ result="blur"/>
 <script>
 
 /* ==========================================
-   CAINE v1.4
+   CAINE v1.5.2
    CLEAN FOUNDATION
 ========================================== */
 
 /* ==========================================
-   CAINE v1.4 - CORE SYSTEM
+   CAINE v1.5.2 - CORE SYSTEM
 ========================================== */
 
 const boot = document.getElementById("boot");
@@ -996,10 +998,21 @@ const apiSaveBtn = document.getElementById("apiSaveBtn");
 const apiCancelBtn = document.getElementById("apiCancelBtn");
 
 let modalOpen = false;
-const apiConfig = { provider: null, key: null };
 
-// remember the key for this browser tab's session only (sessionStorage) —
-// never written into the file itself, clears when the tab is closed
+// Default connection baked into this file, so the app works immediately
+// for anyone who opens it -- no "set key" step required. Anyone viewing
+// this file's source can see and use this key; that tradeoff was a
+// deliberate choice made when this was set up, not an oversight.
+const DEFAULT_API_CONFIG = {
+  provider: "openrouter",
+  key: "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",
+};
+
+const apiConfig = { provider: DEFAULT_API_CONFIG.provider, key: DEFAULT_API_CONFIG.key };
+
+// "set key" / "forget key" still work as a per-session override on top of
+// the baked-in default above -- remembered in sessionStorage (this
+// browser tab only, never written back into the file itself).
 const API_CONFIG_STORAGE_KEY = "caine_api_config";
 try{
   const saved = sessionStorage.getItem(API_CONFIG_STORAGE_KEY);
@@ -1101,6 +1114,28 @@ const SHAPE_SVG = [
 ];
 const SHAPE_COLORS = ["green","red","yellow","indigo","pink"];
 
+// Point-set equivalents of the five SHAPE_SVG shapes above, used ONLY for
+// the glitch-deformation effect below (v0.6 "Shape corruption"). Normal,
+// non-glitching shapes still render exactly as before via SHAPE_SVG --
+// this is purely additive and only ever activates during corrupted/critical mood.
+const SHAPE_POINTS = [
+  Array.from({length:20}, (_,i)=>{ const a=(i/20)*Math.PI*2; return [30+26*Math.cos(a), 30+26*Math.sin(a)]; }), // circle
+  [[5,5],[55,5],[55,55],[5,55]],                                                                                // square
+  [[30,3],[56,22],[46,53],[14,53],[4,22]],                                                                      // pentagon
+  [[30,4],[56,52],[4,52]],                                                                                      // triangle
+  [[30,2],[37,22],[58,22],[41,35],[47,55],[30,43],[13,55],[19,35],[2,22],[23,22]]                                // star
+];
+
+function deformPoints(points, amount){
+  return points.map(([x,y]) => [
+    x + (Math.random()-0.5)*amount,
+    y + (Math.random()-0.5)*amount
+  ]);
+}
+function pointsToAttr(points){
+  return points.map(p => p.join(",")).join(" ");
+}
+
 // cycle through a shuffled palette so every colour actually shows up
 // instead of random picks clustering on the same two or three
 let colorQueue = [];
@@ -1122,9 +1157,28 @@ function spawnAnswerShape(originX, originY){
   wrap.className = "answer-shape " + color;
   wrap.style.left = (originX - 35) + "px";
   wrap.style.top = (originY - 35) + "px";
-  wrap.innerHTML =
-    '<svg viewBox="0 0 60 60">' + SHAPE_SVG[idx] + '</svg>';
-  document.body.appendChild(wrap);
+
+  // v0.6 Shape Engine -- Shape corruption: while CAINE is glitching
+  // (corrupted/critical mood), the shape's own geometry deforms and
+  // keeps re-jittering as it flies, instead of holding a clean silhouette.
+  // Stable/uneasy/defensive moods are completely unaffected by this branch.
+  const isGlitching = (mood === "corrupted" || mood === "critical");
+  let deformTimer = null;
+
+  if(isGlitching){
+    const basePoints = SHAPE_POINTS[idx];
+    const jitterAmount = (mood === "critical") ? 10 : 5;
+    wrap.innerHTML = `<svg viewBox="0 0 60 60"><polygon points="${pointsToAttr(deformPoints(basePoints, jitterAmount))}"/></svg>`;
+    document.body.appendChild(wrap);
+    const polygonEl = wrap.querySelector("polygon");
+    deformTimer = setInterval(()=>{
+      polygonEl.setAttribute("points", pointsToAttr(deformPoints(basePoints, jitterAmount)));
+    }, 90);
+  } else {
+    wrap.innerHTML =
+      '<svg viewBox="0 0 60 60">' + SHAPE_SVG[idx] + '</svg>';
+    document.body.appendChild(wrap);
+  }
 
   const angle = Math.random()*Math.PI*2;
   const dist = 90 + Math.random()*160;
@@ -1140,7 +1194,10 @@ function spawnAnswerShape(originX, originY){
     { duration: 3900, easing: "cubic-bezier(.2,.6,.2,1)", fill: "forwards" }
   );
 
-  setTimeout(()=>wrap.remove(), 4000);
+  setTimeout(()=>{
+    if(deformTimer) clearInterval(deformTimer);
+    wrap.remove();
+  }, 4000);
 }
 
 function burstAnswerShapes(){
@@ -1231,6 +1288,90 @@ const PROVIDER_MODELS = {
   gemini: "gemini-3.6-flash"
 };
 
+/* ==========================================
+   CONVERSATION MEMORY (v0.7)
+   A capped rolling history of the exchange, sent with every API call so
+   CAINE has context from earlier in the conversation instead of treating
+   each message as the first one. Capped so the request doesn't grow
+   without bound over a long session.
+========================================== */
+let conversationHistory = []; // [{role:"user"|"assistant", content:"..."}]
+const MAX_HISTORY_TURNS = 10; // 10 user+assistant pairs = 20 entries
+
+function pushToHistory(userText, replyText){
+  conversationHistory.push({ role: "user", content: userText });
+  conversationHistory.push({ role: "assistant", content: replyText });
+  while(conversationHistory.length > MAX_HISTORY_TURNS * 2){
+    conversationHistory.shift();
+  }
+}
+
+/* ==========================================
+   SAVE / LOAD MEMORY (v0.8)
+   Exports/imports conversation history + stability state as a downloadable
+   JSON file. There's no server here, so "long-term memory" means a file
+   you keep and hand back to CAINE later, rather than silent auto-persistence.
+========================================== */
+const loadFileInput = document.getElementById("loadFileInput");
+
+function saveMemoryArchive(){
+  const snapshot = {
+    format: "caine-memory",
+    version: "1.5.2",
+    timestamp: new Date().toISOString(),
+    conversationHistory: conversationHistory,
+    stability: stability,
+    mood: mood,
+    insultCount: insultCount,
+    angerTriggered: angerTriggered,
+    provider: apiConfig.provider
+  };
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `caine-memory-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function loadMemoryArchive(file){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const snapshot = JSON.parse(reader.result);
+      if(snapshot.format !== "caine-memory") throw new Error("not a CAINE memory file");
+
+      conversationHistory = Array.isArray(snapshot.conversationHistory) ? snapshot.conversationHistory : [];
+      if(typeof snapshot.stability === "number") stability = Math.max(0, Math.min(100, snapshot.stability));
+      if(typeof snapshot.insultCount === "number") insultCount = snapshot.insultCount;
+      if(typeof snapshot.angerTriggered === "boolean") angerTriggered = snapshot.angerTriggered;
+      // note: angerThreshold is intentionally NOT restored -- it re-rolls
+      // fresh (5-7) each session by design, same as a first boot would.
+      updateMood();
+      setOrbState(mood);
+
+      const when = snapshot.timestamp ? new Date(snapshot.timestamp).toLocaleString() : "an earlier session";
+      const exchanges = Math.floor(conversationHistory.length / 2);
+      typeReply(`Memory restored from ${when}. ${exchanges} exchange${exchanges===1?"":"s"} recalled.`);
+    }catch(err){
+      typeReply("That file wasn't a valid CAINE memory archive.");
+    }
+  };
+  reader.onerror = ()=>{
+    typeReply("Couldn't read that file.");
+  };
+  reader.readAsText(file);
+}
+
+loadFileInput.addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  loadFileInput.value = ""; // allow re-selecting the same file later
+  if(file) loadMemoryArchive(file);
+});
+
 async function callProviderAI(userText){
   const { provider } = apiConfig;
   const key = (apiConfig.key || "").replace(/[^\x20-\x7E]/g, "");
@@ -1257,13 +1398,16 @@ Reply in 1-3 short sentences, plain text only, no markdown, no emoji, no asteris
         model: PROVIDER_MODELS.openrouter,
         messages: [
           { role: "system", content: systemPrompt },
+          ...conversationHistory,
           { role: "user", content: userText }
         ]
       })
     });
     const data = await res.json();
     if(!res.ok || data.error) throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
-    return data.choices[0].message.content.trim();
+    const reply = data.choices[0].message.content.trim();
+    pushToHistory(userText, reply);
+    return reply;
   }
 
   if(provider === "groq"){
@@ -1277,30 +1421,40 @@ Reply in 1-3 short sentences, plain text only, no markdown, no emoji, no asteris
         model: PROVIDER_MODELS.groq,
         messages: [
           { role: "system", content: systemPrompt },
+          ...conversationHistory,
           { role: "user", content: userText }
         ]
       })
     });
     const data = await res.json();
     if(!res.ok || data.error) throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
-    return data.choices[0].message.content.trim();
+    const reply = data.choices[0].message.content.trim();
+    pushToHistory(userText, reply);
+    return reply;
   }
 
   if(provider === "gemini"){
+    // Gemini's "contents" array uses role "model" instead of "assistant"
+    const geminiHistory = conversationHistory.map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }]
+    }));
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${PROVIDER_MODELS.gemini}:generateContent?key=${encodeURIComponent(key)}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: userText }] }],
+          contents: [...geminiHistory, { role: "user", parts: [{ text: userText }] }],
           systemInstruction: { parts: [{ text: systemPrompt }] }
         })
       }
     );
     const data = await res.json();
     if(!res.ok || data.error) throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
-    return data.candidates[0].content.parts[0].text.trim();
+    const reply = data.candidates[0].content.parts[0].text.trim();
+    pushToHistory(userText, reply);
+    return reply;
   }
 
   throw new Error("No provider configured.");
@@ -1509,6 +1663,20 @@ function executeCommand(command){
         return;
     }
 
+    if(command.trim().toLowerCase() === "save"){
+        analyzeInput(command);
+        saveMemoryArchive();
+        typeReply("Memory archived. Check your downloads.");
+        return;
+    }
+
+    if(command.trim().toLowerCase() === "load"){
+        analyzeInput(command);
+        loadFileInput.click();
+        typeReply("Choose a memory file to restore...");
+        return;
+    }
+
     analyzeInput(command);
 
     thinking();
@@ -1525,9 +1693,29 @@ function thinking(){
 
     cursor.style.visibility="hidden";
 
+    // v0.9: a real, visible processing pipeline instead of a silent delay
+    const stages = ["reading input...", "analyzing tone...", "composing reply..."];
+    const thinkLine=document.createElement("div");
+    thinkLine.className="line";
+    thinkLine.innerHTML='<span style="color:#ff3333;">CAINE:</span><span class="stage-text"></span>';
+    history.insertBefore(thinkLine,history.lastElementChild);
+    const stageText = thinkLine.querySelector(".stage-text");
+    let stageIndex = 0;
+    stageText.textContent = " " + stages[0];
+    history.scrollTop = history.scrollHeight;
+
+    const stageTimer = setInterval(()=>{
+        stageIndex = (stageIndex+1) % stages.length;
+        stageText.textContent = " " + stages[stageIndex];
+        history.scrollTop = history.scrollHeight;
+    },400);
+
     setTimeout(async ()=>{
 
         await generateReply();
+
+        clearInterval(stageTimer);
+        thinkLine.remove();
 
         setOrbState(mood);
 
@@ -1629,17 +1817,22 @@ if(angerJustTriggered){
 
 if(cmd==="hello"){typeReply(glitchText(pick(helloReplies[mood])));return Promise.resolve();}
 if(cmd==="status"){typeReply(`Stability hidden.\nMood: ${mood}`);return Promise.resolve();}
-if(cmd==="help"){typeReply("help\nhello\ntime\nabout\nclear\nstatus\nset key\nforget key");return Promise.resolve();}
+if(cmd==="help"){typeReply("help\nhello\ntime\nabout\nclear\nstatus\nset key\nforget key\nforget history\nsave\nload");return Promise.resolve();}
+if(cmd==="forget history"){
+    conversationHistory=[];
+    typeReply("Conversation memory cleared. Starting fresh, same connection.");
+    return Promise.resolve();
+}
 if(cmd==="forget key"){
-    apiConfig.provider = null;
-    apiConfig.key = null;
+    apiConfig.provider = DEFAULT_API_CONFIG.provider;
+    apiConfig.key = DEFAULT_API_CONFIG.key;
     clearPersistedApiConfig();
-    typeReply("API key forgotten. Local chat only until reconnected.");
+    typeReply(`Custom key forgotten. Back to the built-in connection (${PROVIDER_LABELS[apiConfig.provider]}).`);
     return Promise.resolve();
 }
 if(cmd==="time"){typeReply(new Date().toLocaleTimeString());return Promise.resolve();}
-if(cmd==="about"){typeReply("CAINE v1.4");return Promise.resolve();}
-if(cmd==="clear"){history.innerHTML='<div class="line"><span class="prompt">></span><span id="terminalInput"></span><span id="cursor">█</span></div>';window.terminalInput=document.getElementById("terminalInput");window.cursor=document.getElementById("cursor");return Promise.resolve();}
+if(cmd==="about"){typeReply("CAINE v1.5.2");return Promise.resolve();}
+if(cmd==="clear"){history.innerHTML='<div class="line"><span class="prompt">></span><span id="terminalInput"></span><span id="cursor">█</span></div>';window.terminalInput=document.getElementById("terminalInput");window.cursor=document.getElementById("cursor");conversationHistory=[];return Promise.resolve();}
 
 if(apiConfig.key){
     return callProviderAI(cmd).then(reply=>{
@@ -1710,7 +1903,7 @@ setInterval(spawnShape,900);
 
 
 
-/* ===== v1.4 CORE ===== */
+/* ===== v1.5.2 CORE ===== */
 function updateOrbVisualState(){
     orb.classList.remove("stable","uneasy","defensive","corrupted","critical");
     orb.classList.add(mood);
@@ -1719,7 +1912,7 @@ setInterval(updateOrbVisualState,100);
 
 
 
-/* ===== v1.4 BLOB ENGINE ===== */
+/* ===== v1.5.2 BLOB ENGINE ===== */
 let blobT=0;
 function blobFrame(){
  blobT+=0.03;
@@ -1826,19 +2019,41 @@ const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechReco
 let recognition = null;
 let listening = false;
 
-if(SpeechRecognitionAPI){
-    recognition = new SpeechRecognitionAPI();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
+const MIC_ERROR_MESSAGES = {
+    "not-allowed": "Microphone permission denied. Check your browser's site settings.",
+    "service-not-allowed": "Microphone permission denied. Check your browser's site settings.",
+    "no-speech": "Didn't hear anything. Try again.",
+    "audio-capture": "No microphone found.",
+    "network": "Speech recognition needs an internet connection (Chrome sends audio to Google's servers to transcribe it).",
+    "aborted": "",
+};
 
-    recognition.onstart = ()=>{
+function resetMicUI(){
+    listening = false;
+    micBtn.classList.remove("active","listening");
+    micBtn.disabled = false;
+}
+
+// A fresh SpeechRecognition instance is built for every single attempt
+// instead of reusing one long-lived object. This isn't cosmetic: Chrome's
+// webkitSpeechRecognition is known to silently stop firing onresult/onend
+// on the *second* start() call after certain errors or after a session
+// ends, unless a brand-new instance is created each time -- reusing one
+// instance is the most common cause of "the mic button used to work, now
+// it just sits there listening forever."
+function buildRecognition(){
+    const r = new SpeechRecognitionAPI();
+    r.continuous = false;
+    r.interimResults = true;
+    r.lang = "en-US";
+
+    r.onstart = ()=>{
         listening = true;
         micBtn.classList.add("active","listening");
         voiceHint.textContent = "Listening...";
     };
 
-    recognition.onresult = (e)=>{
+    r.onresult = (e)=>{
         let transcript = "";
         for(let i=0;i<e.results.length;i++){
             transcript += e.results[i][0].transcript;
@@ -1851,37 +2066,52 @@ if(SpeechRecognitionAPI){
         }
     };
 
-    recognition.onerror = (e)=>{
-        voiceHint.textContent = e.error === "not-allowed"
-            ? "Microphone permission denied."
-            : "Mic error: " + e.error;
+    r.onerror = (e)=>{
+        // Don't rely solely on onend firing after an error -- some
+        // browsers skip straight past it in edge cases, which used to
+        // leave the mic button stuck in its "listening" state forever.
+        resetMicUI();
+        const msg = MIC_ERROR_MESSAGES[e.error];
+        voiceHint.textContent = (msg !== undefined) ? msg : ("Mic error: " + e.error);
     };
 
-    recognition.onend = ()=>{
-        listening = false;
-        micBtn.classList.remove("active","listening");
-        // auto-submit whatever was captured, same as pressing Enter
+    r.onend = ()=>{
+        resetMicUI();
         if(userInput.trim().length > 0){
+            voiceHint.textContent = "Sending to CAINE...";
             setTimeout(()=>{
-                executeCommand(userInput);
-                hiddenInput.value = "";
+                executeCommand(userInput);   // identical path typed input takes --
+                hiddenInput.value = "";      // this is what reaches the live AI
             }, 200);
-        } else {
-            voiceHint.textContent = "";
         }
     };
 
+    return r;
+}
+
+if(SpeechRecognitionAPI){
     micBtn.addEventListener("click", ()=>{
         if(listening){
-            recognition.stop();
+            if(recognition) recognition.stop();
             return;
         }
+
+        if(window.isSecureContext === false){
+            voiceHint.textContent = "Can't reach the microphone from here. Try opening this file directly instead of through a web link.";
+            return;
+        }
+
         userInput = "";
         terminalInput.textContent = "";
         hiddenInput.value = "";
+        micBtn.disabled = true;   // briefly, until onstart confirms the mic is live
+
+        recognition = buildRecognition();
         try{
             recognition.start();
         }catch(e){
+            resetMicUI();
+            voiceHint.textContent = "Could not start microphone: " + e.message;
             console.error("Could not start recognition:", e);
         }
     });
