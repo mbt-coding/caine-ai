@@ -8,7 +8,7 @@
 <meta name="viewport"
 content="width=device-width, initial-scale=1.0">
 
-<title>CAINE AI - Release 1.5.2</title>
+<title>CAINE AI - Release 1.6.2</title>
 
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
 
@@ -500,6 +500,14 @@ word-break:break-word;
 
 }
 
+#terminalInput:empty::before{
+
+content:"Type a message";
+
+color:#4a4a4a;
+
+}
+
 .reply{
 
 color:#bbbbbb;
@@ -546,7 +554,7 @@ opacity:0;
 .shape{position:absolute;width:10px;height:10px;border:1px solid #ff4444;border-radius:50%;pointer-events:none;transform-origin:center;}
 
 
-/* ===== v1.5.2 CORE ===== */
+/* ===== v1.6.2 CORE ===== */
 #livingBlob{
     transition:filter .2s;
 }
@@ -557,7 +565,7 @@ opacity:0;
 #livingBlob.critical{filter:url(#glow) drop-shadow(0 0 30px #ff0000);}
 
 
-/* ===== v1.5.2 SVG BLOB ===== */
+/* ===== v1.6.2 SVG BLOB ===== */
 #livingBlob{fill:#ff1111;filter:url(#glow);}
 
 /* ===========================
@@ -807,11 +815,358 @@ h1{font-size:24px;letter-spacing:.15em;}
 #livingOrbWrap{width:120px;height:120px;}
 #terminal{height:230px;}
 }
+
+/* ===========================
+   SEND / ATTACH / ARTIFACTS CONTROLS
+=========================== */
+.ctrl-btn{ position:relative; }
+#artifactBadge,
+#uploadsBadge,
+#memoryBadge{
+position:absolute;
+top:-4px;
+right:-4px;
+min-width:16px;
+height:16px;
+padding:0 3px;
+border-radius:8px;
+background:#ff3333;
+color:#fff;
+font-size:10px;
+line-height:16px;
+text-align:center;
+display:none;
+}
+#artifactBadge.show,
+#uploadsBadge.show,
+#memoryBadge.show{ display:block; }
+
+/* ---- hover tooltips (data-tip attribute) ---- */
+[data-tip]{ position:relative; }
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after{
+content:attr(data-tip);
+position:absolute;
+bottom:calc(100% + 8px);
+left:50%;
+transform:translateX(-50%);
+background:#1a0000;
+border:1px solid rgba(255,60,60,.4);
+color:#eee;
+font-size:10px;
+font-family:'IBM Plex Mono',monospace;
+padding:5px 9px;
+white-space:nowrap;
+border-radius:4px;
+pointer-events:none;
+z-index:60;
+box-shadow:0 0 10px rgba(0,0,0,.5);
+}
+
+/* ---- send button, anchored directly on the terminal box ---- */
+#sendBtn{
+position:absolute;
+bottom:10px;
+right:10px;
+z-index:7; /* above #hiddenInput's overlay so clicks land on the button */
+width:38px;
+height:38px;
+}
+
+/* ---- side rail: artifacts + uploads, fixed to the viewport edge ---- */
+#sideControls{
+position:fixed;
+right:16px;
+top:130px;
+display:flex;
+flex-direction:column;
+gap:14px;
+z-index:50;
+}
+@media (max-width:720px){
+#sideControls{ top:auto; bottom:170px; right:10px; }
+}
+
+#infoBtn{
+position:fixed;
+top:14px;
+left:14px;
+width:26px;
+height:26px;
+font-size:13px;
+font-style:italic;
+font-weight:700;
+z-index:55;
+}
+
+#welcomePanel{
+width:460px;
+max-width:92vw;
+max-height:76vh;
+overflow-y:auto;
+text-align:left;
+}
+#welcomePanel h2{
+color:#ff3333;
+font-size:16px;
+letter-spacing:.08em;
+margin-bottom:6px;
+}
+#welcomePanel h3{
+color:#ff8a65;
+font-size:12px;
+letter-spacing:.08em;
+margin:16px 0 6px;
+}
+#welcomePanel p,
+#welcomePanel li{
+color:#bbb;
+font-size:12px;
+line-height:1.7;
+}
+#welcomePanel ul{
+margin:0 0 4px 18px;
+padding:0;
+}
+#welcomePanel .changelog-tag{
+display:inline-block;
+background:rgba(255,50,50,.15);
+border:1px solid rgba(255,60,60,.35);
+color:#ff8a65;
+font-size:10px;
+padding:1px 7px;
+border-radius:10px;
+margin-right:6px;
+}
+#welcomeCloseBtn{
+margin-top:18px;
+width:100%;
+background:transparent;
+border:1px solid #ff3333;
+color:#ff6666;
+font-family:'IBM Plex Mono',monospace;
+font-size:12px;
+padding:10px;
+cursor:pointer;
+}
+#welcomeCloseBtn:hover{ background:rgba(255,50,50,.12); }
+
+#attachChip{
+display:none;
+align-items:center;
+gap:8px;
+justify-content:center;
+margin:6px auto 0;
+max-width:92vw;
+padding:6px 10px;
+border:1px solid rgba(255,80,80,.3);
+border-radius:6px;
+background:rgba(255,40,40,.08);
+color:#ddd;
+font-size:11px;
+font-family:'IBM Plex Mono',monospace;
+}
+#attachChip.show{ display:inline-flex; }
+#attachChip button{
+background:none;
+border:none;
+color:#ff6666;
+cursor:pointer;
+font-size:13px;
+line-height:1;
+padding:0;
+}
+
+/* ===========================
+   ARTIFACTS PANEL
+=========================== */
+.panel-overlay{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.78);
+backdrop-filter:blur(3px);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:2000;
+}
+.panel-overlay.open{ display:flex; }
+.artifacts-panel{
+width:480px;
+max-width:92vw;
+max-height:72vh;
+background:#0a0a0a;
+border:1px solid rgba(255,60,60,.4);
+box-shadow:0 0 40px rgba(255,0,0,.2);
+padding:24px 22px;
+font-family:'IBM Plex Mono',monospace;
+display:flex;
+flex-direction:column;
+}
+.artifacts-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:14px;
+}
+.artifacts-header .title{
+color:#ff3333;
+font-size:14px;
+letter-spacing:.1em;
+font-weight:700;
+}
+.artifacts-header button{
+background:none;
+border:none;
+color:#999;
+font-size:18px;
+cursor:pointer;
+}
+#artifactsList,
+#uploadsList{
+overflow-y:auto;
+flex:1;
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+.memory-sub{
+color:#777;
+font-size:11px;
+line-height:1.6;
+margin:0 0 12px;
+}
+#memoryList{
+overflow-y:auto;
+flex:1;
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+.memory-row{
+padding:9px 12px;
+border:1px solid rgba(255,255,255,.1);
+background:rgba(255,255,255,.02);
+}
+.memory-row.user{ border-left:3px solid #7fffb0; }
+.memory-row.assistant{ border-left:3px solid #ff3333; }
+.memory-row .who{
+color:#777;
+font-size:10px;
+text-transform:uppercase;
+letter-spacing:.06em;
+margin-bottom:3px;
+}
+.memory-row .text{
+color:#ddd;
+font-size:12px;
+line-height:1.6;
+white-space:pre-wrap;
+word-break:break-word;
+}
+#memoryForgetBtn{
+margin-top:14px;
+background:transparent;
+border:1px solid rgba(255,255,255,.25);
+color:#ccc;
+font-family:'IBM Plex Mono',monospace;
+font-size:11px;
+padding:9px;
+cursor:pointer;
+}
+#memoryForgetBtn:hover{ background:rgba(255,50,50,.12); border-color:#ff3333; color:#ff6666; }
+#memoryEmpty,
+#artifactsEmpty,
+#uploadsEmpty{
+color:#555;
+font-size:12px;
+text-align:center;
+padding:30px 0;
+}
+.artifact-row{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+padding:10px 12px;
+border:1px solid rgba(255,255,255,.1);
+background:rgba(255,255,255,.02);
+}
+.artifact-row .meta{
+display:flex;
+flex-direction:column;
+gap:2px;
+min-width:0;
+}
+.artifact-row .fname{
+color:#eee;
+font-size:12px;
+overflow:hidden;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+.artifact-row .flang{
+color:#777;
+font-size:10px;
+text-transform:uppercase;
+letter-spacing:.06em;
+}
+.artifact-row .actions{
+display:flex;
+gap:6px;
+flex-shrink:0;
+}
+.artifact-row button{
+background:transparent;
+border:1px solid rgba(255,255,255,.25);
+color:#ccc;
+font-family:'IBM Plex Mono',monospace;
+font-size:10px;
+padding:5px 9px;
+cursor:pointer;
+}
+.artifact-row button:hover{ background:rgba(255,255,255,.08); }
+.artifact-row button.primary{
+border-color:#ff3333;
+color:#ff6666;
+}
+
+@media (max-width:560px){
+.artifacts-panel{ width:92vw; padding:18px 16px; }
+#attachChip{ font-size:10px; }
+#sendBtn{ width:44px; height:44px; bottom:8px; right:8px; }
+}
+
+/* ===========================
+   DRAG & DROP (v1.2)
+=========================== */
+#dropOverlay{
+position:fixed;
+inset:0;
+z-index:1500;
+display:none;
+align-items:center;
+justify-content:center;
+background:rgba(10,0,0,.82);
+border:3px dashed rgba(255,60,60,.6);
+pointer-events:none;
+}
+body.drag-over #dropOverlay{ display:flex; }
+#dropOverlay span{
+color:#ff8a65;
+font-family:'IBM Plex Mono',monospace;
+font-size:18px;
+letter-spacing:.08em;
+text-align:center;
+padding:0 20px;
+}
 </style>
 
 </head>
 
 <body>
+
+<div id="dropOverlay"><span>Drop file to attach it</span></div>
 
 <div id="boot">
 
@@ -852,6 +1207,8 @@ Loading CAINE...
 </div>
 
 <div id="ui">
+
+<button id="infoBtn" class="ctrl-btn" type="button" data-tip="What's new / overview">i</button>
 
 <h1>CAINE</h1>
 
@@ -896,7 +1253,7 @@ result="blur"/>
 
 <div id="terminal">
 
-<input id="hiddenInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Talk to CAINE">
+<input id="hiddenInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Talk to CAINE" placeholder="Type a message">
 
 <div id="history">
 
@@ -912,10 +1269,24 @@ result="blur"/>
 
 </div>
 
+<button id="sendBtn" class="ctrl-btn" type="button" data-tip="Send">
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<line x1="22" y1="2" x2="11" y2="13"/>
+<polygon points="22,2 15,22 11,13 2,9"/>
+</svg>
+</button>
+
 </div>
 
+<input type="file" id="attachFileInput" style="display:none">
+
 <div id="voiceControls">
-<button id="micBtn" class="ctrl-btn" type="button" title="Speak to CAINE">
+<button id="attachBtn" class="ctrl-btn" type="button" data-tip="Attach a file to send to CAINE">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M21 11.5 12.5 20a4.5 4.5 0 0 1-6.36-6.36L14.5 5.28a3 3 0 0 1 4.24 4.24L10.4 17.9a1.5 1.5 0 0 1-2.12-2.12l7.07-7.07"/>
+</svg>
+</button>
+<button id="micBtn" class="ctrl-btn" type="button" data-tip="Speak to CAINE">
 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 <rect x="9" y="2" width="6" height="12" rx="3"/>
 <path d="M5 10a7 7 0 0 0 14 0"/>
@@ -923,7 +1294,7 @@ result="blur"/>
 <line x1="8" y1="22" x2="16" y2="22"/>
 </svg>
 </button>
-<button id="ttsBtn" class="ctrl-btn" type="button" title="Toggle CAINE's voice">
+<button id="ttsBtn" class="ctrl-btn" type="button" data-tip="Toggle CAINE's voice">
 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 <polygon points="4,9 8,9 12,5 12,19 8,15 4,15"/>
 <path d="M16.5 8.5a5 5 0 0 1 0 7"/>
@@ -931,13 +1302,106 @@ result="blur"/>
 </svg>
 </button>
 </div>
+<div id="attachChip"><span id="attachChipName"></span><button id="attachChipRemove" type="button" title="Remove attachment">✕</button></div>
 <div id="voiceHint"></div>
 
+</div>
+
+<div id="sideControls">
+<button id="artifactsBtn" class="ctrl-btn" type="button" data-tip="Files CAINE has generated for you">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+</svg>
+<span id="artifactBadge">0</span>
+</button>
+<button id="uploadsBtn" class="ctrl-btn" type="button" data-tip="Files you've sent to CAINE">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 3v12"/>
+<path d="M7 8l5-5 5 5"/>
+<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+</svg>
+<span id="uploadsBadge">0</span>
+</button>
+<button id="memoryBtn" class="ctrl-btn" type="button" data-tip="What CAINE actually remembers right now">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9.5 2a5.5 5.5 0 0 0-5.3 6.9A4.5 4.5 0 0 0 5.5 17.5H6v2a1.5 1.5 0 0 0 3 0v-2h1v2a1.5 1.5 0 0 0 3 0v-2h.5a4.5 4.5 0 0 0 1.3-8.8A5.5 5.5 0 0 0 9.5 2z"/>
+</svg>
+<span id="memoryBadge">0</span>
+</button>
 </div>
 
 <div id="fluidLayer"></div>
 
 <input type="file" id="loadFileInput" accept="application/json" style="display:none">
+
+<div id="artifactsOverlay" class="panel-overlay">
+<div class="artifacts-panel">
+<div class="artifacts-header">
+<span class="title">GENERATED FILES</span>
+<button id="artifactsCloseBtn" type="button">✕</button>
+</div>
+<div id="artifactsList">
+<div id="artifactsEmpty">Nothing generated yet. Ask CAINE to build something.</div>
+</div>
+</div>
+</div>
+
+<div id="uploadsOverlay" class="panel-overlay">
+<div class="artifacts-panel">
+<div class="artifacts-header">
+<span class="title">YOUR UPLOADS</span>
+<button id="uploadsCloseBtn" type="button">✕</button>
+</div>
+<div id="uploadsList">
+<div id="uploadsEmpty">Nothing attached yet. Use the attach button to send CAINE a file.</div>
+</div>
+</div>
+</div>
+
+<div id="memoryOverlay" class="panel-overlay">
+<div class="artifacts-panel">
+<div class="artifacts-header">
+<span class="title">CAINE'S MEMORY</span>
+<button id="memoryCloseBtn" type="button">✕</button>
+</div>
+<p class="memory-sub">This is the exact conversation CAINE sends with every message — not just what's shown on screen.</p>
+<div id="memoryList">
+<div id="memoryEmpty">Nothing remembered yet. Say something to CAINE.</div>
+</div>
+<button id="memoryForgetBtn" type="button">Forget this (same as /forget history)</button>
+</div>
+</div>
+
+<div id="welcomeOverlay" class="panel-overlay">
+<div id="welcomePanel">
+<h2>WELCOME TO CAINE — v1.6.2</h2>
+<p>CAINE is a living terminal intelligence: a mood-driven orb that reacts to how you treat it, with an optional real AI brain behind its replies.</p>
+
+<h3>OVERVIEW</h3>
+<ul>
+<li>Type to CAINE, or use the mic to speak to it.</li>
+<li>Its stability and mood shift based on your tone — kindness helps, hostility has consequences.</li>
+<li>Type <b>/help</b> any time to see every command. Commands start with a slash; anything else is just chatting with CAINE.</li>
+<li>CAINE can now attach files you send it, and generate real downloadable files in return.</li>
+</ul>
+
+<h3>WHAT'S NEW</h3>
+<p><span class="changelog-tag">NEW</span>Slash commands — every command now starts with <b>/</b> (like <b>/help</b>), so commands and normal chatting never get mixed up.</p>
+<p><span class="changelog-tag">NEW</span>Memory panel — see exactly what conversation CAINE is remembering and sending with each message.</p>
+<p><span class="changelog-tag">NEW</span>Logo, icon, and animation creation — ask for these and CAINE follows purpose-built standards for each (animations genuinely move).</p>
+<p><span class="changelog-tag">IMPROVED</span>Generated file previews now run sandboxed, so a generated page can't reach your saved key.</p>
+<p><span class="changelog-tag">NEW</span>Drag & drop — drop a file anywhere on the page to attach it, no button needed.</p>
+<p><span class="changelog-tag">NEW</span>File upload — attach a file for CAINE to read via the paperclip button.</p>
+<p><span class="changelog-tag">NEW</span>File generation — ask CAINE to build something (HTML, CSS, Python, SVG, etc.) and it appears in your Artifacts panel, downloadable.</p>
+<p><span class="changelog-tag">NEW</span>Artifacts panel — every file CAINE has generated this session, in one place.</p>
+<p><span class="changelog-tag">NEW</span>Uploads panel — a record of everything you've sent CAINE this session.</p>
+<p><span class="changelog-tag">NEW</span>Send button — sits directly on the terminal, next to where you type.</p>
+<p><span class="changelog-tag">NEW</span>API key fallback — if one connection hits a rate limit, CAINE automatically tries the next available key.</p>
+<p><span class="changelog-tag">IMPROVED</span>Hover tooltips on every control.</p>
+
+<button id="welcomeCloseBtn" type="button">Got it — let's go</button>
+</div>
+</div>
 
 <div id="apiModalOverlay">
 <div id="apiModal">
@@ -968,12 +1432,12 @@ result="blur"/>
 <script>
 
 /* ==========================================
-   CAINE v1.5.2
+   CAINE v1.6.2
    CLEAN FOUNDATION
 ========================================== */
 
 /* ==========================================
-   CAINE v1.5.2 - CORE SYSTEM
+   CAINE v1.6.2 - CORE SYSTEM
 ========================================== */
 
 const boot = document.getElementById("boot");
@@ -1000,7 +1464,7 @@ const apiCancelBtn = document.getElementById("apiCancelBtn");
 let modalOpen = false;
 
 // Default connection baked into this file, so the app works immediately
-// for anyone who opens it -- no "set key" step required. Anyone viewing
+// for anyone who opens it -- no "/set key" step required. Anyone viewing
 // this file's source can see and use this key; that tradeoff was a
 // deliberate choice made when this was set up, not an oversight.
 const DEFAULT_API_CONFIG = {
@@ -1010,7 +1474,7 @@ const DEFAULT_API_CONFIG = {
 
 const apiConfig = { provider: DEFAULT_API_CONFIG.provider, key: DEFAULT_API_CONFIG.key };
 
-// "set key" / "forget key" still work as a per-session override on top of
+// "/set key" / "/forget key" still work as a per-session override on top of
 // the baked-in default above -- remembered in sessionStorage (this
 // browser tab only, never written back into the file itself).
 const API_CONFIG_STORAGE_KEY = "caine_api_config";
@@ -1299,11 +1763,13 @@ let conversationHistory = []; // [{role:"user"|"assistant", content:"..."}]
 const MAX_HISTORY_TURNS = 10; // 10 user+assistant pairs = 20 entries
 
 function pushToHistory(userText, replyText){
-  conversationHistory.push({ role: "user", content: userText });
-  conversationHistory.push({ role: "assistant", content: replyText });
+  const now = new Date().toISOString();
+  conversationHistory.push({ role: "user", content: userText, timestamp: now });
+  conversationHistory.push({ role: "assistant", content: replyText, timestamp: now });
   while(conversationHistory.length > MAX_HISTORY_TURNS * 2){
     conversationHistory.shift();
   }
+  if(typeof renderMemoryList === "function") renderMemoryList();
 }
 
 /* ==========================================
@@ -1312,12 +1778,130 @@ function pushToHistory(userText, replyText){
    JSON file. There's no server here, so "long-term memory" means a file
    you keep and hand back to CAINE later, rather than silent auto-persistence.
 ========================================== */
+/* ==========================================
+   FILE UPLOAD / ATTACHMENTS
+   Text-based files (code, html, css, json, csv, md, txt, etc.) are read
+   in full and included as context in your next message to CAINE. Images
+   are read as base64 and, honestly: only Gemini's request format here
+   supports actual image input (inlineData) -- for OpenRouter/Groq the
+   attachment is still noted so CAINE knows it exists, but the model may
+   not truly "see" it unless that specific model supports vision, which
+   the free router does not guarantee.
+========================================== */
+const attachFileInput = document.getElementById("attachFileInput");
+const attachBtn = document.getElementById("attachBtn");
+const attachChip = document.getElementById("attachChip");
+const attachChipName = document.getElementById("attachChipName");
+const attachChipRemove = document.getElementById("attachChipRemove");
+
+let stagedAttachment = null; // {name, mimeType, isImage, content|dataUrl}
+let uploadedFiles = []; // record of everything attached this session, for the Uploads panel
+
+const TEXTY_EXTENSIONS = /\.(txt|md|csv|json|js|jsx|ts|tsx|py|html|htm|css|xml|yml|yaml|c|cpp|h|java|go|rs|sh|sql|log)$/i;
+
+function clearAttachment(){
+  stagedAttachment = null;
+  attachChip.classList.remove("show");
+  attachFileInput.value = "";
+}
+
+function recordUpload(att){
+  uploadedFiles.push(att);
+  renderUploadsList();
+  const badge = document.getElementById("uploadsBadge");
+  badge.textContent = uploadedFiles.length;
+  badge.classList.add("show");
+}
+
+// Folds the staged attachment's content into the text sent to the AI.
+// Images are honestly flagged rather than silently pretending to be seen:
+// none of the three providers here are guaranteed to accept real image
+// input through this simple text-completion request shape.
+function buildAIPayload(rawCmd){
+  if(!stagedAttachment) return rawCmd;
+  if(stagedAttachment.isImage){
+    return `[The user attached an image file named "${stagedAttachment.name}". This connection is text-only and cannot see image contents -- just acknowledge that one was attached if relevant.]\n\n${rawCmd}`;
+  }
+  return `The user attached a file named "${stagedAttachment.name}". Its full contents:\n---\n${stagedAttachment.content}\n---\n\nThe user's message: ${rawCmd}`;
+}
+
+attachBtn.addEventListener("click", ()=> attachFileInput.click());
+attachChipRemove.addEventListener("click", clearAttachment);
+
+function handleAttachedFile(file){
+  if(!file) return;
+
+  const isImage = file.type.startsWith("image/");
+  const isTexty = file.type.startsWith("text/") || TEXTY_EXTENSIONS.test(file.name) || file.type === "application/json";
+
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    if(isImage){
+      stagedAttachment = { name: file.name, mimeType: file.type, isImage: true, dataUrl: reader.result, size: file.size };
+    } else {
+      stagedAttachment = { name: file.name, mimeType: file.type || "text/plain", isImage: false, content: reader.result, size: file.size };
+    }
+    attachChipName.textContent = `📎 ${file.name}`;
+    attachChip.classList.add("show");
+    recordUpload(stagedAttachment);
+  };
+  reader.onerror = ()=>{
+    voiceHint.textContent = "Couldn't read that file.";
+  };
+
+  if(isImage){
+    reader.readAsDataURL(file);
+  } else if(isTexty){
+    reader.readAsText(file);
+  } else {
+    // unknown binary type -- still attach by name/size so CAINE at least
+    // knows something was sent, rather than silently failing
+    stagedAttachment = { name: file.name, mimeType: file.type || "application/octet-stream", isImage: false, content: `[binary file, ${file.size} bytes -- content not readable as text]`, size: file.size };
+    attachChipName.textContent = `📎 ${file.name}`;
+    attachChip.classList.add("show");
+    recordUpload(stagedAttachment);
+  }
+}
+
+attachFileInput.addEventListener("change", (e)=>{
+  handleAttachedFile(e.target.files[0]);
+});
+
+/* ==========================================
+   DRAG & DROP (v1.2 Universal Input)
+   Drop a file anywhere on the page to attach it -- same handling as the
+   paperclip button, just a second way in.
+========================================== */
+let dragCounter = 0; // tracks nested dragenter/dragleave pairs so the
+                      // highlight doesn't flicker when dragging over child elements
+
+["dragenter","dragover","dragleave","drop"].forEach(evt=>{
+  document.addEventListener(evt, (e)=>{ e.preventDefault(); e.stopPropagation(); });
+});
+
+document.addEventListener("dragenter", ()=>{
+  dragCounter++;
+  document.body.classList.add("drag-over");
+});
+
+document.addEventListener("dragleave", ()=>{
+  dragCounter = Math.max(0, dragCounter - 1);
+  if(dragCounter === 0) document.body.classList.remove("drag-over");
+});
+
+document.addEventListener("drop", (e)=>{
+  dragCounter = 0;
+  document.body.classList.remove("drag-over");
+  const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if(file) handleAttachedFile(file);
+});
+
 const loadFileInput = document.getElementById("loadFileInput");
 
 function saveMemoryArchive(){
   const snapshot = {
     format: "caine-memory",
-    version: "1.5.2",
+    version: "1.6.2",
     timestamp: new Date().toISOString(),
     conversationHistory: conversationHistory,
     stability: stability,
@@ -1352,6 +1936,7 @@ function loadMemoryArchive(file){
       // fresh (5-7) each session by design, same as a first boot would.
       updateMood();
       setOrbState(mood);
+      if(typeof renderMemoryList === "function") renderMemoryList();
 
       const when = snapshot.timestamp ? new Date(snapshot.timestamp).toLocaleString() : "an earlier session";
       const exchanges = Math.floor(conversationHistory.length / 2);
@@ -1372,9 +1957,259 @@ loadFileInput.addEventListener("change", (e)=>{
   if(file) loadMemoryArchive(file);
 });
 
-async function callProviderAI(userText){
-  const { provider } = apiConfig;
-  const key = (apiConfig.key || "").replace(/[^\x20-\x7E]/g, "");
+/* ==========================================
+   FILE GENERATION + ARTIFACTS PANEL
+   CAINE is instructed (see the system prompt below) to wrap any file it
+   generates in a labeled fenced block: ```language:filename.ext ... ```
+   This parses those out of a reply, turns each into a real downloadable
+   file, and replaces the block in the displayed text with a short note
+   so the terminal doesn't get flooded with raw code.
+========================================== */
+let artifacts = []; // {id, filename, language, content}
+let artifactIdCounter = 0;
+
+// Filenames/languages come from AI output and uploaded file names, which are
+// untrusted -- escape before putting them into innerHTML.
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function extractArtifactsFromReply(replyText){
+  const fenceRe = /```([\w+-]+):([^\n`]+)\n([\s\S]*?)```/g;
+  let match;
+  let cleaned = replyText;
+  const found = [];
+
+  while((match = fenceRe.exec(replyText)) !== null){
+    const [full, language, filename, content] = match;
+    found.push({ full, language: language.trim(), filename: filename.trim(), content: content.replace(/\n$/, "") });
+  }
+
+  found.forEach(f=>{
+    const artifact = {
+      id: ++artifactIdCounter,
+      filename: f.filename,
+      language: f.language,
+      content: f.content
+    };
+    artifacts.push(artifact);
+    cleaned = cleaned.replace(f.full, `[Generated: ${f.filename} — see Artifacts panel]`);
+  });
+
+  if(found.length > 0){
+    renderArtifactsList();
+    const badge = document.getElementById("artifactBadge");
+    badge.textContent = artifacts.length;
+    badge.classList.add("show");
+  }
+
+  return cleaned.trim();
+}
+
+function downloadArtifact(artifact){
+  const blob = new Blob([artifact.content], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = artifact.filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function openArtifactInNewTab(artifact){
+  // Generated files are AI-written (and the AI may have read an uploaded
+  // file written by someone else), so they're treated as untrusted code:
+  // the preview runs inside an iframe sandboxed WITHOUT allow-same-origin,
+  // which gives it an opaque origin -- it can run and animate, but cannot
+  // read this page's sessionStorage (where a custom API key is kept).
+  const wrapper = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(artifact.filename)}</title>
+<style>html,body{margin:0;height:100%;background:#fff}iframe{border:0;width:100%;height:100%}</style></head>
+<body><iframe sandbox="allow-scripts allow-forms allow-popups" srcdoc="${escapeHtml(artifact.content)}"></iframe></body></html>`;
+  const blob = new Blob([wrapper], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+  // don't revoke immediately -- the new tab needs the URL to stay valid
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
+
+function downloadArtifactAsPng(artifact){
+  // Genuine SVG -> PNG conversion: rasterizes the AI-generated SVG onto an
+  // offscreen canvas and exports that as a real PNG file. This is how a
+  // true downloadable PNG is produced here -- text completion APIs cannot
+  // emit raw image bytes directly, so SVG is the real file CAINE writes,
+  // and this converts it client-side into an actual image file.
+  const svgBlob = new Blob([artifact.content], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = ()=>{
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width || 512;
+    canvas.height = img.height || 512;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(pngBlob=>{
+      const pngUrl = URL.createObjectURL(pngBlob);
+      const a = document.createElement("a");
+      a.href = pngUrl;
+      a.download = artifact.filename.replace(/\.svg$/i, "") + ".png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(pngUrl);
+    }, "image/png");
+  };
+  img.onerror = ()=>{
+    voiceHint.textContent = "Couldn't convert that SVG to PNG.";
+  };
+  img.src = url;
+}
+
+function renderArtifactsList(){
+  const list = document.getElementById("artifactsList");
+  const empty = document.getElementById("artifactsEmpty");
+  list.querySelectorAll(".artifact-row").forEach(el=>el.remove());
+  if(artifacts.length === 0){ empty.style.display="block"; return; }
+  empty.style.display="none";
+
+  artifacts.slice().reverse().forEach(artifact=>{
+    const row = document.createElement("div");
+    row.className = "artifact-row";
+    const canPreview = artifact.language === "html" || artifact.language === "svg";
+    row.innerHTML = `
+      <div class="meta">
+        <span class="fname">${escapeHtml(artifact.filename)}</span>
+        <span class="flang">${escapeHtml(artifact.language)}</span>
+      </div>
+      <div class="actions">
+        ${canPreview ? '<button class="open-btn">Open</button>' : ''}
+        ${artifact.language === "svg" ? '<button class="png-btn">PNG</button>' : ''}
+        <button class="primary download-btn">Download</button>
+      </div>`;
+    row.querySelector(".download-btn").addEventListener("click", ()=>downloadArtifact(artifact));
+    if(canPreview) row.querySelector(".open-btn").addEventListener("click", ()=>openArtifactInNewTab(artifact));
+    if(artifact.language === "svg") row.querySelector(".png-btn").addEventListener("click", ()=>downloadArtifactAsPng(artifact));
+    list.appendChild(row);
+  });
+}
+
+function renderUploadsList(){
+  const list = document.getElementById("uploadsList");
+  const empty = document.getElementById("uploadsEmpty");
+  list.querySelectorAll(".artifact-row").forEach(el=>el.remove());
+  if(uploadedFiles.length === 0){ empty.style.display="block"; return; }
+  empty.style.display="none";
+
+  uploadedFiles.slice().reverse().forEach(att=>{
+    const row = document.createElement("div");
+    row.className = "artifact-row";
+    const sizeKb = att.size ? (att.size/1024).toFixed(1)+" KB" : "";
+    row.innerHTML = `
+      <div class="meta">
+        <span class="fname">${escapeHtml(att.name)}</span>
+        <span class="flang">${sizeKb}</span>
+      </div>
+      <div class="actions">
+        ${!att.isImage ? '<button class="primary redownload-btn">Download</button>' : ''}
+      </div>`;
+    if(!att.isImage){
+      row.querySelector(".redownload-btn").addEventListener("click", ()=>{
+        const blob = new Blob([att.content], { type: att.mimeType || "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = att.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      });
+    }
+    list.appendChild(row);
+  });
+}
+
+// ---- panel open/close wiring ----
+function wirePanel(btnId, overlayId, closeBtnId){
+  const btn = document.getElementById(btnId);
+  const overlay = document.getElementById(overlayId);
+  const closeBtn = document.getElementById(closeBtnId);
+  btn.addEventListener("click", ()=> overlay.classList.add("open"));
+  closeBtn.addEventListener("click", ()=> overlay.classList.remove("open"));
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) overlay.classList.remove("open"); });
+}
+wirePanel("artifactsBtn", "artifactsOverlay", "artifactsCloseBtn");
+wirePanel("uploadsBtn", "uploadsOverlay", "uploadsCloseBtn");
+wirePanel("memoryBtn", "memoryOverlay", "memoryCloseBtn");
+
+// ---- memory visualization (v0.8) ----
+// Shows the exact conversationHistory array that gets sent to the AI with
+// every message -- so what you see here is what CAINE actually "remembers",
+// not a summary of it.
+function renderMemoryList(){
+  const list = document.getElementById("memoryList");
+  const empty = document.getElementById("memoryEmpty");
+  const badge = document.getElementById("memoryBadge");
+  list.querySelectorAll(".memory-row").forEach(el=>el.remove());
+
+  if(conversationHistory.length === 0){
+    empty.style.display = "block";
+    badge.classList.remove("show");
+    return;
+  }
+  empty.style.display = "none";
+
+  conversationHistory.forEach(entry=>{
+    const row = document.createElement("div");
+    row.className = "memory-row " + entry.role;
+    const who = document.createElement("div");
+    who.className = "who";
+    const time = entry.timestamp ? " · " + new Date(entry.timestamp).toLocaleTimeString() : "";
+    who.textContent = (entry.role === "user" ? "You" : "CAINE") + time;
+    const text = document.createElement("div");
+    text.className = "text";
+    text.textContent = entry.content; // textContent, so nothing in a message can inject markup
+    row.appendChild(who);
+    row.appendChild(text);
+    list.appendChild(row);
+  });
+
+  badge.textContent = Math.floor(conversationHistory.length / 2);
+  badge.classList.add("show");
+  list.scrollTop = list.scrollHeight;
+}
+
+document.getElementById("memoryForgetBtn").addEventListener("click", ()=>{
+  conversationHistory = [];
+  renderMemoryList();
+  document.getElementById("memoryOverlay").classList.remove("open");
+  typeReply("Conversation memory cleared. Starting fresh, same connection.");
+});
+
+// ---- welcome / changelog modal ----
+const WELCOME_SEEN_KEY = "caine_welcome_seen_1.6.2";
+const welcomeOverlay = document.getElementById("welcomeOverlay");
+const infoBtn = document.getElementById("infoBtn");
+document.getElementById("welcomeCloseBtn").addEventListener("click", ()=>{
+  welcomeOverlay.classList.remove("open");
+  try{ sessionStorage.setItem(WELCOME_SEEN_KEY, "1"); }catch(e){}
+});
+infoBtn.addEventListener("click", ()=> welcomeOverlay.classList.add("open"));
+welcomeOverlay.addEventListener("click", (e)=>{
+  if(e.target === welcomeOverlay){
+    welcomeOverlay.classList.remove("open");
+    try{ sessionStorage.setItem(WELCOME_SEEN_KEY, "1"); }catch(e){}
+  }
+});
+
+async function callProviderAI(userText, credentialOverride){
+  const provider = (credentialOverride && credentialOverride.provider) || apiConfig.provider;
+  const rawKey = (credentialOverride && credentialOverride.key) || apiConfig.key || "";
+  const key = rawKey.replace(/[^\x20-\x7E]/g, "");
   const angerNote = angerTriggered
     ? " The user has insulted or been hostile toward you enough times that you have genuinely snapped: you are irritated, curt, and on edge with them right now. You are not violent or abusive back, just visibly fed up and guarded. If they are kind for a while you will gradually thaw."
     : "";
@@ -1385,7 +2220,15 @@ Tone rules:
 - defensive: guarded, terser, less warmth showing through.
 - corrupted: fragmented, uneasy, short bursts, occasional trailing off.
 - critical: fragmented and unstable but always answer the user's question, never true gibberish.
-Reply in 1-3 short sentences, plain text only, no markdown, no emoji, no asterisks. Speak as CAINE, never break character, never mention being "an AI language model."`;
+Reply in 1-3 short sentences, plain text only, no markdown, no emoji, no asterisks, UNLESS the user is asking you to create/generate/write a file (code, HTML, CSS, an SVG image, a script, etc.) — in that exact case, include the file content inside a fenced block formatted EXACTLY like this, with no other fence format: \`\`\`language:filename.ext
+<the full file content>
+\`\`\`
+You may put one short plain-text sentence before or after the fence, but the fence itself must contain ONLY the raw file content, nothing else. Use "svg" as the language for any image request, writing real SVG markup — you cannot output PNG/JPEG bytes directly, only vector markup, which the app can convert.
+For these specific creation requests, follow these exact standards:
+- LOGO: a bold, scalable SVG mark. No more than 2-3 colors, no fine detail that would disappear at small sizes, clean enough to work as a brand icon.
+- ICON: a minimal single-concept SVG pictogram, viewBox="0 0 24 24" unless told otherwise, simple fills or strokes, legible even at 16-24px.
+- ANIMATION: it must actually move when opened, not be a static image. Prefer an animated SVG using real SMIL elements (<animate>, <animateTransform>) so it plays automatically in a browser tab; if the motion needs more than SMIL can do, write a small self-contained HTML file with CSS @keyframes instead.
+Speak as CAINE, never break character, never mention being "an AI language model."`;
 
   if(provider === "openrouter"){
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -1404,7 +2247,11 @@ Reply in 1-3 short sentences, plain text only, no markdown, no emoji, no asteris
       })
     });
     const data = await res.json();
-    if(!res.ok || data.error) throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+    if(!res.ok || data.error){
+      const err = new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
     const reply = data.choices[0].message.content.trim();
     pushToHistory(userText, reply);
     return reply;
@@ -1427,7 +2274,11 @@ Reply in 1-3 short sentences, plain text only, no markdown, no emoji, no asteris
       })
     });
     const data = await res.json();
-    if(!res.ok || data.error) throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+    if(!res.ok || data.error){
+      const err = new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
     const reply = data.choices[0].message.content.trim();
     pushToHistory(userText, reply);
     return reply;
@@ -1451,13 +2302,59 @@ Reply in 1-3 short sentences, plain text only, no markdown, no emoji, no asteris
       }
     );
     const data = await res.json();
-    if(!res.ok || data.error) throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+    if(!res.ok || data.error){
+      const err = new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
     const reply = data.candidates[0].content.parts[0].text.trim();
     pushToHistory(userText, reply);
     return reply;
   }
 
   throw new Error("No provider configured.");
+}
+
+/* ==========================================
+   API KEY FALLBACK / ROTATION
+   If the primary connection (apiConfig) hits a rate limit or quota error,
+   automatically retry with the next key in this pool before giving up.
+   Non-quota errors (bad request, invalid key, etc.) are surfaced right
+   away instead of masking them by cycling through every key uselessly.
+
+   Add more {provider, key} entries here as they're provided -- each one
+   is tried in order after the primary connection.
+========================================== */
+const FALLBACK_KEY_POOL = [
+  // { provider: "openrouter", key: "sk-or-v1-..." },
+];
+
+function isRateLimitError(err){
+  if(err && err.status === 429) return true;
+  const msg = ((err && err.message) || "").toLowerCase();
+  return msg.includes("rate limit") || msg.includes("quota") ||
+         msg.includes("resource_exhausted") || msg.includes("too many requests") ||
+         msg.includes("429");
+}
+
+async function callProviderAIWithFallback(userText){
+  const credentials = [
+    { provider: apiConfig.provider, key: apiConfig.key },
+    ...FALLBACK_KEY_POOL
+  ];
+  let lastErr = null;
+  for(let i=0; i<credentials.length; i++){
+    const cred = credentials[i];
+    if(!cred.provider || !cred.key) continue;
+    try{
+      return await callProviderAI(userText, cred);
+    }catch(err){
+      lastErr = err;
+      if(!isRateLimitError(err)) throw err; // a real error -- don't mask it
+      // otherwise: quota/rate-limit hit, fall through to the next key
+    }
+  }
+  throw lastErr || new Error("No working API credentials available.");
 }
 
 let stability = 100;
@@ -1576,6 +2473,12 @@ const bootTimer = setInterval(() => {
 
             ui.style.opacity = "1";
 
+            let alreadySeenWelcome = false;
+            try{ alreadySeenWelcome = sessionStorage.getItem("caine_welcome_seen_1.6.2") === "1"; }catch(e){}
+            if(!alreadySeenWelcome){
+                setTimeout(()=>{ document.getElementById("welcomeOverlay").classList.add("open"); }, 400);
+            }
+
         },900);
 
     }
@@ -1604,13 +2507,24 @@ hiddenInput.addEventListener("input", ()=>{
     history.scrollTop = history.scrollHeight;
 });
 
+function submitCurrentInput(){
+    if(userInput.trim()==="") return;
+    executeCommand(userInput);
+    hiddenInput.value = "";
+}
+
 hiddenInput.addEventListener("keydown",(e)=>{
     if(e.key==="Enter"){
         e.preventDefault();
-        if(userInput.trim()==="") return;
-        executeCommand(userInput);
-        hiddenInput.value = "";
+        submitCurrentInput();
     }
+});
+
+const sendBtn = document.getElementById("sendBtn");
+sendBtn.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    submitCurrentInput();
+    refocusInput();
 });
 
 // fallback for physical keyboards when the hidden input isn't focused yet
@@ -1632,7 +2546,11 @@ document.addEventListener("keydown",(e)=>{
 EXECUTE
 ========================================== */
 
+let lastSubmittedCommand = "";
+
 function executeCommand(command){
+
+    lastSubmittedCommand = command;
 
     const line=document.createElement("div");
 
@@ -1642,7 +2560,7 @@ function executeCommand(command){
 
     '<span class="prompt">&gt;</span>'+
 
-    '<span>'+command+'</span>';
+    '<span>'+escapeHtml(command)+'</span>';
 
     history.insertBefore(line,history.lastElementChild);
 
@@ -1657,20 +2575,20 @@ function executeCommand(command){
 
     lastInteraction = Date.now();
 
-    if(command.trim().toLowerCase() === "set key"){
+    if(command.trim().toLowerCase() === "/set key"){
         analyzeInput(command);
         setTimeout(()=>openApiKeyModal(), 250);
         return;
     }
 
-    if(command.trim().toLowerCase() === "save"){
+    if(command.trim().toLowerCase() === "/save"){
         analyzeInput(command);
         saveMemoryArchive();
         typeReply("Memory archived. Check your downloads.");
         return;
     }
 
-    if(command.trim().toLowerCase() === "load"){
+    if(command.trim().toLowerCase() === "/load"){
         analyzeInput(command);
         loadFileInput.click();
         typeReply("Choose a memory file to restore...");
@@ -1789,7 +2707,7 @@ function glitchText(text){
 
 function generateReply(){
 
-const cmd=history.children[history.children.length-2].innerText.replace(">","").trim().toLowerCase();
+const cmd=lastSubmittedCommand.trim().toLowerCase();
 
 const helloReplies={
 stable:["Hey there!\nWhat can I do for you today?","Hi! Good to hear from you.","Hello! I'm all ears — what's up?"],
@@ -1815,28 +2733,37 @@ if(angerJustTriggered){
     return Promise.resolve();
 }
 
-if(cmd==="hello"){typeReply(glitchText(pick(helloReplies[mood])));return Promise.resolve();}
-if(cmd==="status"){typeReply(`Stability hidden.\nMood: ${mood}`);return Promise.resolve();}
-if(cmd==="help"){typeReply("help\nhello\ntime\nabout\nclear\nstatus\nset key\nforget key\nforget history\nsave\nload");return Promise.resolve();}
-if(cmd==="forget history"){
+if(cmd==="/hello"){typeReply(glitchText(pick(helloReplies[mood])));return Promise.resolve();}
+if(cmd==="/status"){typeReply(`Stability hidden.\nMood: ${mood}`);return Promise.resolve();}
+if(cmd==="/help"){typeReply("/help\n/hello\n/time\n/about\n/clear\n/status\n/set key\n/forget key\n/forget history\n/save\n/load");return Promise.resolve();}
+if(cmd==="/forget history"){
     conversationHistory=[];
+    if(typeof renderMemoryList === "function") renderMemoryList();
     typeReply("Conversation memory cleared. Starting fresh, same connection.");
     return Promise.resolve();
 }
-if(cmd==="forget key"){
+if(cmd==="/forget key"){
     apiConfig.provider = DEFAULT_API_CONFIG.provider;
     apiConfig.key = DEFAULT_API_CONFIG.key;
     clearPersistedApiConfig();
     typeReply(`Custom key forgotten. Back to the built-in connection (${PROVIDER_LABELS[apiConfig.provider]}).`);
     return Promise.resolve();
 }
-if(cmd==="time"){typeReply(new Date().toLocaleTimeString());return Promise.resolve();}
-if(cmd==="about"){typeReply("CAINE v1.5.2");return Promise.resolve();}
-if(cmd==="clear"){history.innerHTML='<div class="line"><span class="prompt">></span><span id="terminalInput"></span><span id="cursor">█</span></div>';window.terminalInput=document.getElementById("terminalInput");window.cursor=document.getElementById("cursor");conversationHistory=[];return Promise.resolve();}
+if(cmd==="/time"){typeReply(new Date().toLocaleTimeString());return Promise.resolve();}
+if(cmd==="/about"){typeReply("CAINE v1.6.2");return Promise.resolve();}
+if(cmd==="/clear"){history.innerHTML='<div class="line"><span class="prompt">></span><span id="terminalInput"></span><span id="cursor">█</span></div>';window.terminalInput=document.getElementById("terminalInput");window.cursor=document.getElementById("cursor");conversationHistory=[];if(typeof renderMemoryList === "function") renderMemoryList();return Promise.resolve();}
+
+if(cmd.startsWith("/")){
+    typeReply(glitchText(`Unknown command "${cmd}". Try /help.`));
+    return Promise.resolve();
+}
 
 if(apiConfig.key){
-    return callProviderAI(cmd).then(reply=>{
-        typeReply(glitchText(reply));
+    const payload = buildAIPayload(cmd);
+    clearAttachment();
+    return callProviderAIWithFallback(payload).then(reply=>{
+        const cleanedReply = extractArtifactsFromReply(reply);
+        typeReply(glitchText(cleanedReply));
     }).catch(err=>{
         stability = Math.max(0, stability - 4);
         updateMood();
@@ -1850,7 +2777,11 @@ if(angerTriggered){
  return Promise.resolve();
 }
 if((mood==="corrupted"||mood==="critical")&&Math.random()<0.25){typeReply(glitchText("...signal instability detected..."));return Promise.resolve();}
-typeReply(glitchText(`Unknown command "${cmd}"`));
+if(cmd.startsWith("/")){
+    typeReply(glitchText(`Unknown command "${cmd}". Try /help.`));
+}else{
+    typeReply(glitchText("I can't think for real without a connection right now. Try /set key, or use a command like /help."));
+}
 return Promise.resolve();
 
 }
@@ -1903,7 +2834,7 @@ setInterval(spawnShape,900);
 
 
 
-/* ===== v1.5.2 CORE ===== */
+/* ===== v1.6.2 CORE ===== */
 function updateOrbVisualState(){
     orb.classList.remove("stable","uneasy","defensive","corrupted","critical");
     orb.classList.add(mood);
@@ -1912,7 +2843,7 @@ setInterval(updateOrbVisualState,100);
 
 
 
-/* ===== v1.5.2 BLOB ENGINE ===== */
+/* ===== v1.6.2 BLOB ENGINE ===== */
 let blobT=0;
 function blobFrame(){
  blobT+=0.03;
@@ -2003,7 +2934,7 @@ function speakText(text){
 
 if(!speechSupported){
     ttsBtn.disabled = true;
-    ttsBtn.title = "Voice not supported in this browser";
+    ttsBtn.title = "Voice not supported in this browser"; ttsBtn.setAttribute("data-tip","Voice not supported in this browser");
 }
 
 ttsBtn.addEventListener("click", ()=>{
@@ -2117,7 +3048,7 @@ if(SpeechRecognitionAPI){
     });
 } else {
     micBtn.disabled = true;
-    micBtn.title = "Voice input not supported in this browser (try Chrome)";
+    micBtn.title = "Voice input not supported in this browser (try Chrome)"; micBtn.setAttribute("data-tip","Voice input not supported (try Chrome)");
 }
 
 // speak CAINE's replies aloud when TTS is enabled
